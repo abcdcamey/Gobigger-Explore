@@ -139,3 +139,9 @@ total_config.py
 *.mp4
 *.zip
 *.yaml
+
+
+# idea
+.idea/*
+
+*/.DS_Store

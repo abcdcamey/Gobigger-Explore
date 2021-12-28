@@ -35,7 +35,7 @@ gobigger_config = dict(
         ),
         learn=dict(
             update_per_collect=8,
-            batch_size=256,
+            batch_size=512,
             learning_rate=0.001,
             target_theta=0.005,
             discount_factor=0.99,
@@ -49,7 +49,7 @@ gobigger_config = dict(
             eps=dict(
                 type='exp',
                 start=0.95,
-                end=0.5,
+                end=0.3,
                 decay=100000,
             ),
             replay_buffer=dict(replay_buffer_size=100000, ),

@@ -56,6 +56,7 @@ class GoBiggerSimpleEnv(GoBiggerEnv):
         # player
         obs = []
         for n, value in player_state.items():
+            #print(f"player:{n}")
             # scalar feat
             # get margin
             left_top_x, left_top_y, right_bottom_x, right_bottom_y = value['rectangle']
@@ -102,7 +103,7 @@ class GoBiggerSimpleEnv(GoBiggerEnv):
                 'collate_ignore_raw_obs': {'overlap': overlap},
             }
             obs.append(player_obs)
-
+        #print(len(obs))
         team_obs = []
         for i in range(self._team_num):
             team_obs.append(team_obs_stack(obs[i * self._player_num_per_team: (i + 1) * self._player_num_per_team]))
@@ -246,10 +247,13 @@ def relation_encode(point_1, point_2):
     return relation
 
 def team_obs_stack(team_obs):
-    result = {}
-    for k in team_obs[0].keys():
-        result[k] = [o[k] for o in team_obs]
-    return result
+   if len(team_obs)>0:
+        result = {}
+        for k in team_obs[0].keys():
+            result[k] = [o[k] for o in team_obs]
+        return result
+   else:
+       return {}
 
 
 

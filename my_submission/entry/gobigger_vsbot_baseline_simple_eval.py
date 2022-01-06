@@ -44,9 +44,9 @@ def main(cfg, ckpt_path, seed=0):
 
     # Evaluator Setting 
     cfg.exp_name = 'gobigger_vsbot_eval'
-    cfg.env.spatial = True  # necessary
-    cfg.env.evaluator_env_num = 3
-    cfg.env.n_evaluator_episode = 3
+    cfg.env.spatial = False  # necessary
+    cfg.env.evaluator_env_num = 1
+    cfg.env.n_evaluator_episode = 1
 
     cfg = compile_config(
         cfg,
@@ -68,6 +68,7 @@ def main(cfg, ckpt_path, seed=0):
         rule_env_cfg.save_video = True
         rule_env_cfg.save_quality = 'low'
         rule_env_cfg.save_path = './{}/rule'.format(cfg.exp_name)
+        rule_env_cfg.match_time = 60*10
         if not os.path.exists(rule_env_cfg.save_path):
             os.makedirs(rule_env_cfg.save_path)
         rule_env_cfgs.append(rule_env_cfg)
@@ -81,6 +82,9 @@ def main(cfg, ckpt_path, seed=0):
 
     model = GoBiggerHybridActionSimple(**cfg.policy.model)
     policy = DQNPolicy(cfg.policy, model=model)
+    f = torch.load(ckpt_path)
+    print(ckpt_path)
+    print(f)
     policy.eval_mode.load_state_dict(torch.load(ckpt_path))
     team_num = cfg.env.team_num
     rule_eval_policy = [RulePolicy(team_id, cfg.env.player_num_per_team) for team_id in range(1, team_num)]

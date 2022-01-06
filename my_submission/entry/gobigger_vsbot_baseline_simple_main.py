@@ -4,7 +4,7 @@ import copy
 from tensorboardX import SummaryWriter
 import sys
 sys.path.append('..')
-
+import torch
 from ding.config import compile_config
 from ding.worker import BaseLearner, BattleSampleSerialCollector, BattleInteractionSerialEvaluator, NaiveReplayBuffer
 from ding.envs import SyncSubprocessEnvManager
@@ -16,7 +16,7 @@ from gobigger.agents import BotAgent
 from envs import GoBiggerSimpleEnv
 from model import GoBiggerHybridActionSimple
 from config.gobigger_no_spatial_config import main_config
-
+from glob import glob
 class RulePolicy:
 
     def __init__(self, team_id: int, player_num_per_team: int):
@@ -51,11 +51,27 @@ def main(cfg, seed=0, max_iterations=int(1e10)):
         NaiveReplayBuffer,
         save_cfg=True
     )
+
+    ckpt_list = glob(os.path.join('./{}/ckpt/'.format(cfg.exp_name),"iteration_*.pth.tar"))
+    max_iter = 0
+    for c in ckpt_list:
+        _, name = os.path.split(c)
+        iter = int(name[10:].split(".pth")[0])
+        if iter > max_iter:
+            max_iter = iter
+    if max_iter > 0:
+        cfg.policy.learn.learner.hook.load_ckpt_before_run = cfg.policy.learn.learner.hook.load_ckpt_before_run+\
+                                                        f"iteration_{max_iter}.pth.tar"
+
+        print(f"load model from {cfg.policy.learn.learner.hook.load_ckpt_before_run}")
+    else:
+        cfg.policy.learn.learner.hook.load_ckpt_before_run = ""
     collector_env_num, evaluator_env_num = cfg.env.collector_env_num, cfg.env.evaluator_env_num
     collector_env_cfg = copy.deepcopy(cfg.env)
     collector_env_cfg.train = True
     evaluator_env_cfg = copy.deepcopy(cfg.env)
     evaluator_env_cfg.train = False
+    evaluator_env_cfg.match_time = 60*5
     collector_env = SyncSubprocessEnvManager(
         env_fn=[lambda: GoBiggerSimpleEnv(collector_env_cfg) for _ in range(collector_env_num)], cfg=cfg.env.manager
     )
@@ -76,6 +92,7 @@ def main(cfg, seed=0, max_iterations=int(1e10)):
     epsilon_greedy = get_epsilon_greedy_fn(eps_cfg.start, eps_cfg.end, eps_cfg.decay, eps_cfg.type)
 
     tb_logger = SummaryWriter(os.path.join('./{}/log/'.format(cfg.exp_name), 'serial'))
+
     learner = BaseLearner(
         cfg.policy.learn.learner, policy.learn_mode, tb_logger, exp_name=cfg.exp_name, instance_name='learner'
     )
@@ -93,7 +110,10 @@ def main(cfg, seed=0, max_iterations=int(1e10)):
         instance_name='rule_evaluator'
     )
     replay_buffer = NaiveReplayBuffer(cfg.policy.other.replay_buffer, exp_name=cfg.exp_name)
-    for _ in range(max_iterations):
+
+
+    for k in range(max_iterations):
+
         if rule_evaluator.should_eval(learner.train_iter):
             rule_stop_flag, rule_reward, _ = rule_evaluator.eval(
                 learner.save_checkpoint, learner.train_iter, collector.envstep
@@ -108,5 +128,8 @@ def main(cfg, seed=0, max_iterations=int(1e10)):
             train_data = replay_buffer.sample(learner.policy.get_attribute('batch_size'), learner.train_iter)
             learner.train(train_data, collector.envstep)
 
+        torch.cuda.empty_cache()
+
+        print(f"iterations:{k+1}")
 if __name__ == "__main__":
     main(main_config)

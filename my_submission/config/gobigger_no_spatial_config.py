@@ -1,7 +1,7 @@
 from easydict import EasyDict
 
 gobigger_config = dict(
-    exp_name='gobigger_simple_baseline_dqn',
+    exp_name='gobigger_baseline_v030',
     env=dict(
         collector_env_num=6,
         evaluator_env_num=1,
@@ -39,7 +39,7 @@ gobigger_config = dict(
         ),
         learn=dict(
             update_per_collect=8,
-            batch_size=120,
+            batch_size=128,
             learning_rate=0.001,
             target_theta=0.005,
             discount_factor=0.99,

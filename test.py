@@ -7,6 +7,7 @@ import argparse
 import requests
 import subprocess
 from tqdm import tqdm
+import traceback
 
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
 os.environ['SDL_AUDIODRIVER'] = 'dsp'
@@ -37,8 +38,9 @@ def test():
             agents.append(p.MySubmission(team_name=team_names[index], 
                                          player_names=team_player_names[team_names[index]]))
         except Exception as e:
-            print('You must implement `MySubmission` in my_submission.py !')
-            raise
+            logging.error(''.join(traceback.format_tb(e.__traceback__)))
+            logging.error(sys.exc_info()[0])
+            logging.error('You must implement `MySubmission` in my_submission.py !')
             exit()
     
     for i in tqdm(range(30*server.action_tick_per_second)):
@@ -58,14 +60,14 @@ def test():
     print('Success!')
 
 def postprocess():
-    logging.debug('tar zcf my_submission.tar.gz my_submission')
-    output = subprocess.getoutput('tar zcf my_submission.tar.gz my_submission')
+    logging.debug('tar zcf my_submission.tar.gz my_submission/')
+    output = subprocess.getoutput('tar zcf my_submission.tar.gz my_submission/')
     assert os.path.isfile('my_submission.tar.gz')
-    print('###################################################################')
-    print('#                                                                 #')
-    print('#   Now you can upload my_submission.tar.gz as your submission.   #')
-    print('#                                                                 #')
-    print('###################################################################')
+    logging.debug('###################################################################')
+    logging.debug('#                                                                 #')
+    logging.debug('#   Now you can upload my_submission.tar.gz as your submission.   #')
+    logging.debug('#                                                                 #')
+    logging.debug('###################################################################')
 
 if __name__ == '__main__':
     test()

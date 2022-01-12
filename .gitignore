@@ -148,3 +148,6 @@ total_config.py
 .DS_Store
 
 *.tar
+
+supplements/
+

@@ -14,12 +14,12 @@ from ding.rl_utils import get_epsilon_greedy_fn
 from gobigger.agents import BotAgent
 import time
 from envs import GoBiggerSimpleEnv
-from model import GoBiggerHybridActionSimple
+from model import GoBiggerHybridActionSimpleV3
 from config.gobigger_no_spatial_config import main_config
 from glob import glob
 from io import StringIO
 import traceback
-
+import torch
 
 class RulePolicy:
 
@@ -45,6 +45,7 @@ class RulePolicy:
 
 
 def main(cfg, seed=0, max_iterations=int(1e10)):
+    cfg.exp_name = 'gobigger-v030'
     cfg = compile_config(
         cfg,
         SyncSubprocessEnvManager,
@@ -87,7 +88,7 @@ def main(cfg, seed=0, max_iterations=int(1e10)):
     rule_evaluator_env.seed(seed, dynamic_seed=False)
     set_pkg_seed(seed, use_cuda=cfg.policy.cuda)
 
-    model = GoBiggerHybridActionSimple(**cfg.policy.model)
+    model = GoBiggerHybridActionSimpleV3(**cfg.policy.model)
     policy = DQNPolicy(cfg.policy, model=model)
     team_num = cfg.env.team_num
     rule_collect_policy = [RulePolicy(team_id, cfg.env.player_num_per_team) for team_id in range(1, team_num)]
@@ -143,5 +144,7 @@ def main(cfg, seed=0, max_iterations=int(1e10)):
                 time.sleep(5)
                 torch.cuda.empty_cache()
         print(f"iterations:{k+1}")
+
 if __name__ == "__main__":
     main(main_config)
+    

@@ -45,8 +45,8 @@ def main(cfg, ckpt_path, seed=0):
     # Evaluator Setting 
     cfg.exp_name = 'gobigger_vsbot_eval'
     cfg.env.spatial = False  # necessary
-    cfg.env.evaluator_env_num = 1
-    cfg.env.n_evaluator_episode = 1
+    cfg.env.evaluator_env_num = 3
+    cfg.env.n_evaluator_episode = 2
 
     cfg = compile_config(
         cfg,

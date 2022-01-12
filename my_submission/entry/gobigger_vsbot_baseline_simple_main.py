@@ -12,11 +12,15 @@ from policy.gobigger_policy import DQNPolicy
 from ding.utils import set_pkg_seed
 from ding.rl_utils import get_epsilon_greedy_fn
 from gobigger.agents import BotAgent
-
+import time
 from envs import GoBiggerSimpleEnv
 from model import GoBiggerHybridActionSimple
 from config.gobigger_no_spatial_config import main_config
 from glob import glob
+from io import StringIO
+import traceback
+
+
 class RulePolicy:
 
     def __init__(self, team_id: int, player_num_per_team: int):
@@ -125,11 +129,19 @@ def main(cfg, seed=0, max_iterations=int(1e10)):
         new_data, _ = collector.collect(train_iter=learner.train_iter, policy_kwargs={'eps': eps})
         replay_buffer.push(new_data[0], cur_collector_envstep=collector.envstep)
         for i in range(cfg.policy.learn.update_per_collect):
-            train_data = replay_buffer.sample(learner.policy.get_attribute('batch_size'), learner.train_iter)
-            learner.train(train_data, collector.envstep)
-
-        torch.cuda.empty_cache()
-
+            try:
+                train_data = replay_buffer.sample(learner.policy.get_attribute('batch_size'), learner.train_iter)
+                learner.train(train_data, collector.envstep)
+            except Exception as e:
+                fp = StringIO()
+                traceback.print_exc(file=fp)
+                message = fp.getvalue()
+                print(message)
+                torch.cuda.empty_cache()
+                time.sleep(5)
+                torch.cuda.empty_cache()
+                time.sleep(5)
+                torch.cuda.empty_cache()
         print(f"iterations:{k+1}")
 if __name__ == "__main__":
     main(main_config)

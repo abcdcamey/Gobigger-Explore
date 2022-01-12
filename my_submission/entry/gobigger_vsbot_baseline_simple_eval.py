@@ -83,9 +83,7 @@ def main(cfg, ckpt_path, seed=0):
     model = GoBiggerHybridActionSimple(**cfg.policy.model)
     policy = DQNPolicy(cfg.policy, model=model)
     f = torch.load(ckpt_path)
-    print(ckpt_path)
-    print(f)
-    policy.eval_mode.load_state_dict(torch.load(ckpt_path))
+    policy.eval_mode.load_state_dict(f)
     team_num = cfg.env.team_num
     rule_eval_policy = [RulePolicy(team_id, cfg.env.player_num_per_team) for team_id in range(1, team_num)]
 

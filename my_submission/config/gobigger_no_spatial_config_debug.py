@@ -1,14 +1,14 @@
 from easydict import EasyDict
 
 gobigger_config = dict(
-    exp_name='gobigger_simple_baseline_dqn',
+    exp_name='gobigger_simple_baseline_dqn_debug',
     env=dict(
-        collector_env_num=6,
+        collector_env_num=1,
         evaluator_env_num=1,
-        n_evaluator_episode=2,
+        n_evaluator_episode=1,
         stop_value=1e10,
-        team_num=4,
-        player_num_per_team=3,
+        team_num=2,
+        player_num_per_team=1,
         match_time=60*10,
         map_height=1000,
         map_width=1000,
@@ -21,7 +21,7 @@ gobigger_config = dict(
         manager=dict(shared_memory=False, ),
     ),
     policy=dict(
-        cuda=True,
+        cuda=False,
         on_policy=False,
         priority=False,
         priority_IS_weight=False,
@@ -38,8 +38,8 @@ gobigger_config = dict(
             action_type_shape=16,
         ),
         learn=dict(
-            update_per_collect=8,
-            batch_size=120,
+            update_per_collect=4,
+            batch_size=128,
             learning_rate=0.001,
             target_theta=0.005,
             discount_factor=0.99,
@@ -47,8 +47,8 @@ gobigger_config = dict(
             learner=dict(
                 hook=dict(save_ckpt_after_iter=1000, load_ckpt_before_run='gobigger_simple_baseline_dqn/ckpt/',)),
         ),
-        collect=dict(n_sample=240, unroll_len=1, alpha=1.0),
-        eval=dict(evaluator=dict(eval_freq=1000,)),
+        collect=dict(n_sample=256, unroll_len=1, alpha=1.0),
+        eval=dict(evaluator=dict(eval_freq=2000,)),
         other=dict(
             eps=dict(
                 type='exp',

@@ -23,7 +23,7 @@ def test():
     server = Server(dict(
             team_num=4, # 队伍数量
             player_num_per_team=3, # 每个队伍的玩家数量
-            match_time=30, # 每场比赛的持续时间
+            match_time=60*15, # 每场比赛的持续时间
     ))
     render = EnvRender(server.map_width, server.map_height)
     server.set_render(render)

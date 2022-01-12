@@ -4,9 +4,11 @@
 # DateTime    : 2022/1/5 11:39 上午
 # Description : 
 """
+import os
+import numpy as np
 from ding.envs import BaseEnvManager
 import copy
-from config.gobigger_no_spatial_config import main_config
+from config.gobigger_no_spatial_config_debug import main_config
 from ding.config import compile_config
 from policy.gobigger_policy import DQNPolicy
 from ding.worker import BaseLearner, BattleSampleSerialCollector, BattleInteractionSerialEvaluator, NaiveReplayBuffer
@@ -14,7 +16,12 @@ from envs import GoBiggerSimpleEnv
 from ding.utils import set_pkg_seed
 from model import GoBiggerHybridActionSimple
 from gobigger.agents import BotAgent
-
+from ding.rl_utils import get_epsilon_greedy_fn
+from tensorboardX import SummaryWriter
+import torch
+import time
+import pdb
+import pickle
 class RulePolicy:
 
     def __init__(self, team_id: int, player_num_per_team: int):
@@ -69,8 +76,53 @@ def main(cfg, seed=0, max_iterations=int(1e10)):
 
     model = GoBiggerHybridActionSimple(**cfg.policy.model)
     policy = DQNPolicy(cfg.policy, model=model)
+
+    ckpt_path = "gobigger_simple_baseline_dqn/ckpt/iteration_0.pth.tar"
+    f = torch.load(ckpt_path, map_location=torch.device('cpu'))
+    # fw = open('./test_ori2.pkl', "wb")
+    # pickle.dump(policy, fw)
+    # fw.close()
+
+    policy.eval_mode.load_state_dict(f)
+    # fw = open('./test_0_loaded.pkl', 'wb')
+    # pickle.dump(policy, fw)
+    # fw.close()
+
     team_num = cfg.env.team_num
     rule_collect_policy = [RulePolicy(team_id, cfg.env.player_num_per_team) for team_id in range(1, team_num)]
+    rule_eval_policy = [RulePolicy(team_id, cfg.env.player_num_per_team) for team_id in range(1, team_num)]
+    eps_cfg = cfg.policy.other.eps
+    epsilon_greedy = get_epsilon_greedy_fn(eps_cfg.start, eps_cfg.end, eps_cfg.decay, eps_cfg.type)
+    tb_logger = SummaryWriter(os.path.join('./{}/log/'.format(cfg.exp_name), 'serial'))
+    learner = BaseLearner(
+        cfg.policy.learn.learner, policy.learn_mode, tb_logger, exp_name=cfg.exp_name, instance_name='learner'
+    )
+    collector = BattleSampleSerialCollector(
+        cfg.policy.collect.collector,
+        collector_env, [policy.collect_mode] + rule_collect_policy,
+        tb_logger,
+        exp_name=cfg.exp_name
+    )
+    rule_evaluator = BattleInteractionSerialEvaluator(
+        cfg.policy.eval.evaluator,
+        rule_evaluator_env, [policy.eval_mode] + rule_eval_policy,
+        tb_logger,
+        exp_name=cfg.exp_name,
+        instance_name='rule_evaluator'
+    )
+    replay_buffer = NaiveReplayBuffer(cfg.policy.other.replay_buffer, exp_name=cfg.exp_name)
+
+    for k in range(max_iterations):
+
+        eps = epsilon_greedy(collector.envstep)
+        # Sampling data from environments
+        new_data, _ = collector.collect(train_iter=learner.train_iter, policy_kwargs={'eps': eps})
+        replay_buffer.push(new_data[0], cur_collector_envstep=collector.envstep)
+
+        train_data = replay_buffer.sample(learner.policy.get_attribute('batch_size'), learner.train_iter)
+        learner.train(train_data, collector.envstep)
+
+
 
 
 if __name__ == "__main__":

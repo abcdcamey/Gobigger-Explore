@@ -146,3 +146,5 @@ total_config.py
 
 */.DS_Store
 .DS_Store
+
+*.tar

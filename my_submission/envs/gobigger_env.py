@@ -255,7 +255,7 @@ class GoBiggerEnv(BaseEnv):
             leaderboard = self._last_team_size
             leaderboard_sorted = sorted(leaderboard.items(), key=lambda x: x[1], reverse=True)
             win_rate = self.win_rate(leaderboard_sorted)
-            #print('win_rate:{:.3f}, leaderboard_sorted:{}'.format(win_rate, leaderboard_sorted))
+            print('win_rate:{:.3f}, leaderboard_sorted:{}'.format(win_rate, leaderboard_sorted))
         return BaseEnvTimestep(obs, rew, done, info)
 
     def win_rate(self, leaderboard_sorted):

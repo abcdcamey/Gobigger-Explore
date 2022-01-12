@@ -44,9 +44,9 @@ def main(cfg, ckpt_path, seed=0):
 
     # Evaluator Setting 
     cfg.exp_name = 'gobigger_vsbot_eval'
-    cfg.env.spatial = True
+    cfg.env.spatial = False
     cfg.env.evaluator_env_num = 1
-    cfg.env.n_evaluator_episode = 1
+    cfg.env.n_evaluator_episode = 3
 
     cfg = compile_config(
         cfg,
@@ -77,7 +77,6 @@ def main(cfg, ckpt_path, seed=0):
 
     model = GoBiggerHybridActionSimpleV3(**cfg.policy.model)
     policy = DQNPolicy(cfg.policy, model=model)
-    policy_copy = copy.deepcopy(policy)
     policy.eval_mode.load_state_dict(torch.load(ckpt_path))
 
     team_num = cfg.env.team_num

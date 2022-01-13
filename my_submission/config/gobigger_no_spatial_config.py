@@ -21,7 +21,7 @@ gobigger_config = dict(
         manager=dict(shared_memory=False, ),
     ),
     policy=dict(
-        cuda=True,
+        cuda=False,
         on_policy=False,
         priority=False,
         priority_IS_weight=False,

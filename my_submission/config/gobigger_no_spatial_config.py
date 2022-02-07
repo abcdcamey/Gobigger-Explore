@@ -23,8 +23,8 @@ gobigger_config = dict(
     policy=dict(
         cuda=True,
         on_policy=False,
-        priority=False,
-        priority_IS_weight=False,
+        priority=True, #defalut False
+        priority_IS_weight=False,#defalut False
         #nstep=3,
         model=dict(
             scalar_shape=5,
@@ -56,7 +56,7 @@ gobigger_config = dict(
                 end=0.5,
                 decay=100000,
             ),
-            replay_buffer=dict(replay_buffer_size=100000, ),
+            replay_buffer=dict(replay_buffer_size=150000, ),
         ),
     ),
 )

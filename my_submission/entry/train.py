@@ -5,6 +5,8 @@
 # Description : 
 """
 import os
+import sys
+sys.path.append('..')
 import numpy as np
 from ding.envs import BaseEnvManager
 import copy
@@ -14,14 +16,19 @@ from policy.gobigger_policy import DQNPolicy
 from ding.worker import BaseLearner, BattleSampleSerialCollector, BattleInteractionSerialEvaluator, NaiveReplayBuffer
 from envs import GoBiggerSimpleEnv
 from ding.utils import set_pkg_seed
-from model import GoBiggerHybridActionSimple
+from model import GoBiggerHybridActionSimpleV3
 from gobigger.agents import BotAgent
 from ding.rl_utils import get_epsilon_greedy_fn
 from tensorboardX import SummaryWriter
 import torch
+import logging
+logging.basicConfig(level=logging.DEBUG)
+
 import time
 import pdb
 import pickle
+import argparse
+
 class RulePolicy:
 
     def __init__(self, team_id: int, player_num_per_team: int):
@@ -44,7 +51,7 @@ class RulePolicy:
     def reset(self, data_id: list = []) -> None:
         pass
 
-def main(cfg, seed=0, max_iterations=int(1e10)):
+def main(cfg,ckpt_path=None, seed=0, max_iterations=int(1e10)):
     cfg = compile_config(
         cfg,
         BaseEnvManager,
@@ -61,7 +68,7 @@ def main(cfg, seed=0, max_iterations=int(1e10)):
     collector_env_cfg.train = True
     evaluator_env_cfg = copy.deepcopy(cfg.env)
     evaluator_env_cfg.train = False
-    evaluator_env_cfg.match_time = 60 * 5
+    evaluator_env_cfg.match_time = 60 * 10
 
     collector_env = BaseEnvManager(
         env_fn=[lambda: GoBiggerSimpleEnv(collector_env_cfg) for _ in range(collector_env_num)], cfg=cfg.env.manager
@@ -74,16 +81,20 @@ def main(cfg, seed=0, max_iterations=int(1e10)):
     rule_evaluator_env.seed(seed, dynamic_seed=False)
     set_pkg_seed(seed, use_cuda=cfg.policy.cuda)
 
-    model = GoBiggerHybridActionSimple(**cfg.policy.model)
+    model = GoBiggerHybridActionSimpleV3(**cfg.policy.model)
     policy = DQNPolicy(cfg.policy, model=model)
 
-    ckpt_path = "gobigger_simple_baseline_dqn/ckpt/iteration_0.pth.tar"
-    f = torch.load(ckpt_path, map_location=torch.device('cpu'))
+    if ckpt_path is not None:
+
+        f = torch.load(ckpt_path)
+        policy.eval_mode.load_state_dict(f)
+        logging.debug(f'load model from {ckpt_path}')
+
     # fw = open('./test_ori2.pkl', "wb")
     # pickle.dump(policy, fw)
     # fw.close()
 
-    policy.eval_mode.load_state_dict(f)
+    # policy.eval_mode.load_state_dict(f)
     # fw = open('./test_0_loaded.pkl', 'wb')
     # pickle.dump(policy, fw)
     # fw.close()
@@ -112,6 +123,13 @@ def main(cfg, seed=0, max_iterations=int(1e10)):
     )
     replay_buffer = NaiveReplayBuffer(cfg.policy.other.replay_buffer, exp_name=cfg.exp_name)
 
+    # rule_stop_flag, rule_reward, _ = rule_evaluator.eval(
+    #     learner.save_checkpoint, learner.train_iter, collector.envstep
+    # )
+
+
+
+
     for k in range(max_iterations):
 
         eps = epsilon_greedy(collector.envstep)
@@ -126,4 +144,7 @@ def main(cfg, seed=0, max_iterations=int(1e10)):
 
 
 if __name__ == "__main__":
-    main(main_config)
+    parser = argparse.ArgumentParser(description='debug')
+    parser.add_argument('--ckpt', '-c', help='checkpoint for evaluation')
+    args = parser.parse_args()
+    main(main_config, ckpt_path = args.ckpt)

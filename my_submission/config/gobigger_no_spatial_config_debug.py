@@ -1,14 +1,14 @@
 from easydict import EasyDict
 
 gobigger_config = dict(
-    exp_name='gobigger_simple_baseline_dqn_debug',
+    exp_name='gobigger_baseline_v030_debug',
     env=dict(
         collector_env_num=1,
         evaluator_env_num=1,
         n_evaluator_episode=1,
         stop_value=1e10,
         team_num=2,
-        player_num_per_team=1,
+        player_num_per_team=2,
         match_time=60*10,
         map_height=1000,
         map_width=1000,
@@ -38,7 +38,7 @@ gobigger_config = dict(
             action_type_shape=16,
         ),
         learn=dict(
-            update_per_collect=4,
+            update_per_collect=8,
             batch_size=128,
             learning_rate=0.001,
             target_theta=0.005,

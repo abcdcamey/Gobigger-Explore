@@ -1,18 +1,5 @@
-import random
-import os
-import gym
-import numpy as np
-import copy
-import torch
-import time
-
-from ding.config import compile_config
-
-from .policy.gobigger_policy import DQNPolicy
-from .envs import GoBiggerSimpleEnv
-from .model import GoBiggerHybridActionSimpleV3
-from .config.gobigger_no_spatial_config import main_config
-
+#from policy.bot_policy import MyBotAgent
+from .policy.demo_bot_policy import BotAgent
 
 class BaseSubmission:
 
@@ -32,24 +19,20 @@ class MySubmission(BaseSubmission):
 
     def __init__(self, team_name, player_names):
         super(MySubmission, self).__init__(team_name, player_names)
-        self.cfg = copy.deepcopy(main_config)
-        self.cfg = compile_config(
-            self.cfg,
-            policy=DQNPolicy,
-            save_cfg=False,
-        )
-        self.cfg.env.train = False
-        print(self.cfg)
-        self.root_path = os.path.abspath(os.path.dirname(__file__))
-        self.model = GoBiggerHybridActionSimpleV3(**self.cfg.policy.model)
-        self.model.load_state_dict(torch.load(os.path.join(self.root_path, 'supplements', 'ckpt_best.pth.tar'), map_location='cpu')['model'])
-        self.policy = DQNPolicy(self.cfg.policy, model=self.model).eval_mode
-        self.env = GoBiggerSimpleEnv(self.cfg.env)
+        self.agents = {}
+        for player_name in self.player_names:
+            self.agents[player_name] = BotAgent(team_name=team_name, player_name=player_name)
 
     def get_actions(self, obs):
-        obs_transform = self.env._obs_transform_eval(obs)[0]
-        obs_transform = {0: obs_transform}
-        raw_actions = self.policy.forward(obs_transform)[0]['action']
-        raw_actions = raw_actions.tolist()
-        actions = {n: GoBiggerSimpleEnv._to_raw_action(a) for n, a in zip(obs[1].keys(), raw_actions)}
+        global_state, player_states = obs
+        actions = {}
+
+        agent_obs = {}
+        for k, v in player_states.items():
+            if v["team_name"] == self.team_name:
+                agent_obs[k] = v
+
+        for player_name, agent in self.agents.items():
+            action = agent.step([global_state, agent_obs])
+            actions[player_name] = action
         return actions

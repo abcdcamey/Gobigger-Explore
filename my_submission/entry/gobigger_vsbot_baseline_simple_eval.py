@@ -11,7 +11,7 @@ from ding.envs import SyncSubprocessEnvManager, BaseEnvManager
 from policy.gobigger_policy import DQNPolicy
 from ding.utils import set_pkg_seed
 from gobigger.agents import BotAgent
-
+import random
 from envs import GoBiggerSimpleEnv
 from model import GoBiggerHybridActionSimpleV3
 from config.gobigger_no_spatial_config import main_config
@@ -45,8 +45,8 @@ def main(cfg, ckpt_path, seed=0):
     # Evaluator Setting 
     cfg.exp_name = 'gobigger_vsbot_eval'
     cfg.env.spatial = False  # necessary
-    cfg.env.evaluator_env_num = 1
-    cfg.env.n_evaluator_episode = 3
+    cfg.env.evaluator_env_num = 2
+    cfg.env.n_evaluator_episode = 2
 
     cfg = compile_config(
         cfg,
@@ -64,11 +64,16 @@ def main(cfg, ckpt_path, seed=0):
     rule_env_cfgs = []
     for i in range(evaluator_env_num):
         rule_env_cfg = copy.deepcopy(cfg.env)
+
         rule_env_cfg.train = False
+        #if i==0:
         rule_env_cfg.save_video = True
+        #else:
+            #rule_env_cfg.save_video = False
+
         rule_env_cfg.save_quality = 'low'
         rule_env_cfg.save_path = './{}/rule'.format(cfg.exp_name)
-        rule_env_cfg.match_time = 60*10
+        rule_env_cfg.match_time = 60*7
         if not os.path.exists(rule_env_cfg.save_path):
             os.makedirs(rule_env_cfg.save_path)
         rule_env_cfgs.append(rule_env_cfg)
@@ -102,4 +107,5 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='evaluation')
     parser.add_argument('--ckpt', '-c', help='checkpoint for evaluation')
     args = parser.parse_args()
-    main(main_config, ckpt_path = args.ckpt)
+    seed = random.randint(0,9)
+    main(main_config, ckpt_path = args.ckpt,seed = seed)

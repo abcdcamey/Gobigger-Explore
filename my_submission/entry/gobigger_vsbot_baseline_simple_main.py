@@ -45,7 +45,7 @@ class RulePolicy:
 
 
 def main(cfg, seed=0, max_iterations=int(1e10)):
-    cfg.exp_name = 'gobigger-v030'
+    cfg.exp_name = 'gobigger-v030-vsbot'
     cfg = compile_config(
         cfg,
         SyncSubprocessEnvManager,
@@ -57,26 +57,26 @@ def main(cfg, seed=0, max_iterations=int(1e10)):
         save_cfg=True
     )
 
-    ckpt_list = glob(os.path.join('./{}/ckpt/'.format(cfg.exp_name),"iteration_*.pth.tar"))
-    max_iter = 0
-    for c in ckpt_list:
-        _, name = os.path.split(c)
-        iter = int(name[10:].split(".pth")[0])
-        if iter > max_iter:
-            max_iter = iter
-    if max_iter > 0:
-        cfg.policy.learn.learner.hook.load_ckpt_before_run = cfg.policy.learn.learner.hook.load_ckpt_before_run+\
-                                                        f"iteration_{max_iter}.pth.tar"
-
-        print(f"load model from {cfg.policy.learn.learner.hook.load_ckpt_before_run}")
-    else:
-        cfg.policy.learn.learner.hook.load_ckpt_before_run = ""
+    # ckpt_list = glob(os.path.join('./{}/ckpt/'.format(cfg.exp_name),"iteration_*.pth.tar"))
+    # max_iter = 0
+    # for c in ckpt_list:
+    #     _, name = os.path.split(c)
+    #     iter = int(name[10:].split(".pth")[0])
+    #     if iter > max_iter:
+    #         max_iter = iter
+    # if max_iter > 0:
+    #     cfg.policy.learn.learner.hook.load_ckpt_before_run = cfg.policy.learn.learner.hook.load_ckpt_before_run+\
+    #                                                     f"iteration_{max_iter}.pth.tar"
+    #
+    #     print(f"load model from {cfg.policy.learn.learner.hook.load_ckpt_before_run}")
+    # else:
+    #     cfg.policy.learn.learner.hook.load_ckpt_before_run = ""
     collector_env_num, evaluator_env_num = cfg.env.collector_env_num, cfg.env.evaluator_env_num
     collector_env_cfg = copy.deepcopy(cfg.env)
     collector_env_cfg.train = True
     evaluator_env_cfg = copy.deepcopy(cfg.env)
     evaluator_env_cfg.train = False
-    evaluator_env_cfg.match_time = 60*5
+    # evaluator_env_cfg.match_time = 60*5
     collector_env = SyncSubprocessEnvManager(
         env_fn=[lambda: GoBiggerSimpleEnv(collector_env_cfg) for _ in range(collector_env_num)], cfg=cfg.env.manager
     )
@@ -93,6 +93,7 @@ def main(cfg, seed=0, max_iterations=int(1e10)):
     team_num = cfg.env.team_num
     rule_collect_policy = [RulePolicy(team_id, cfg.env.player_num_per_team) for team_id in range(1, team_num)]
     rule_eval_policy = [RulePolicy(team_id, cfg.env.player_num_per_team) for team_id in range(1, team_num)]
+
     eps_cfg = cfg.policy.other.eps
     epsilon_greedy = get_epsilon_greedy_fn(eps_cfg.start, eps_cfg.end, eps_cfg.decay, eps_cfg.type)
 
@@ -140,9 +141,7 @@ def main(cfg, seed=0, max_iterations=int(1e10)):
                 print(message)
                 torch.cuda.empty_cache()
                 time.sleep(5)
-                torch.cuda.empty_cache()
-                time.sleep(5)
-                torch.cuda.empty_cache()
+        torch.cuda.empty_cache()
         print(f"iterations:{k+1}")
 
 if __name__ == "__main__":

@@ -64,7 +64,7 @@ class GoBiggerSimpleEnv(GoBiggerEnv):
             left_margin, right_margin = left_top_x, self._map_width - right_bottom_x
             top_margin, bottom_margin = left_top_y, self._map_height - right_bottom_y
             # get scalar feat
-            scalar_obs = np.array([rest_time / 1000, left_margin / 1000, right_margin / 1000, top_margin / 1000, bottom_margin / 1000])  # dim = 5
+            scalar_obs = np.array([rest_time / 600, left_margin / 1000, right_margin / 1000, top_margin / 1000, bottom_margin / 1000])  # dim = 5
 
             # unit feat
             overlap = value['overlap']
@@ -103,6 +103,8 @@ class GoBiggerSimpleEnv(GoBiggerEnv):
                 'clone_relation': clone_relation.astype(np.float32),
                 #'collate_ignore_raw_obs': {'overlap': overlap,'player_bot_obs':player_bot_obs},
                 'collate_ignore_raw_obs': {'overlap': overlap},
+                'global_state': {global_state},
+                'player_state': {player_state},
             }
             obs.append(player_obs)
 
@@ -131,7 +133,7 @@ class GoBiggerSimpleEnv(GoBiggerEnv):
             left_margin, right_margin = left_top_x, self._map_width - right_bottom_x
             top_margin, bottom_margin = left_top_y, self._map_height - right_bottom_y
             # get scalar feat
-            scalar_obs = np.array([rest_time / 1000, left_margin / 1000, right_margin / 1000, top_margin / 1000, bottom_margin / 1000])  # dim = 5
+            scalar_obs = np.array([rest_time / 600, left_margin / 1000, right_margin / 1000, top_margin / 1000, bottom_margin / 1000])  # dim = 5
 
             # unit feat
             overlap = value['overlap']
@@ -170,6 +172,7 @@ class GoBiggerSimpleEnv(GoBiggerEnv):
                 'clone_relation': clone_relation.astype(np.float32),
                 #'collate_ignore_raw_obs': {'overlap': overlap,'player_bot_obs':player_bot_obs},
                 'collate_ignore_raw_obs': {'overlap': overlap},
+                'global_state':{global_state}
             }
             obs.append(player_obs)
         #print(len(obs))
@@ -247,7 +250,7 @@ def food_encode(clone, food, left_top_x, left_top_y, right_bottom_x, right_botto
     # food_relation represent food and cloen in 7*7 grid (offset_x, offset_y, r) 
 
     for p in food:
-        x = min(max(p[0], left_top_x), right_bottom_x) - left_top_x
+        x = min(max(p[0], left_top_x), right_bottom_x) - left_top_x #
         y = min(max(p[1], left_top_y), right_bottom_y) - left_top_y
         radius = p[2]
         # encode food density map
@@ -255,7 +258,7 @@ def food_encode(clone, food, left_top_x, left_top_y, right_bottom_x, right_botto
         food_map[0, i, j] += radius * radius
         # encode food fine grid
         i, j = int(y // 8), int(x // 8)
-        food_grid[i][j].append([(x - 8 * j) / 8, (y - 8 * i) / 8, radius])
+        food_grid[i][j].append([(x - 8 * j) / 8, (y - 8 * i) / 8, radius]) # 在8*8的小单元格内的偏置坐标
 
     for c_id, p in enumerate(clone):
         x = min(max(p[0], left_top_x), right_bottom_x) - left_top_x

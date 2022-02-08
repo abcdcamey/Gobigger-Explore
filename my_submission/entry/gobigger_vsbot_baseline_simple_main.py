@@ -20,7 +20,8 @@ from glob import glob
 from io import StringIO
 import traceback
 import torch
-
+import logging
+logging.basicConfig(level=logging.DEBUG)
 class RulePolicy:
 
     def __init__(self, team_id: int, player_num_per_team: int):
@@ -117,7 +118,6 @@ def main(cfg, seed=0, max_iterations=int(1e10)):
     )
     replay_buffer = NaiveReplayBuffer(cfg.policy.other.replay_buffer, exp_name=cfg.exp_name)
 
-
     for k in range(max_iterations):
 
         if rule_evaluator.should_eval(learner.train_iter):
@@ -126,10 +126,17 @@ def main(cfg, seed=0, max_iterations=int(1e10)):
             )
             if rule_stop_flag:
                 break
-        eps = epsilon_greedy(collector.envstep)
-        # Sampling data from environments
-        new_data, _ = collector.collect(train_iter=learner.train_iter, policy_kwargs={'eps': eps})
-        replay_buffer.push(new_data[0], cur_collector_envstep=collector.envstep)
+        try:
+            eps = epsilon_greedy(collector.envstep)
+            # Sampling data from environments
+            new_data, _ = collector.collect(train_iter=learner.train_iter, policy_kwargs={'eps': eps})
+            replay_buffer.push(new_data[0], cur_collector_envstep=collector.envstep)
+        except Exception as e:
+            fp = StringIO()
+            traceback.print_exc(file=fp)
+            message = fp.getvalue()
+            logging.debug(message)
+
         for i in range(cfg.policy.learn.update_per_collect):
             try:
                 train_data = replay_buffer.sample(learner.policy.get_attribute('batch_size'), learner.train_iter)
@@ -138,11 +145,13 @@ def main(cfg, seed=0, max_iterations=int(1e10)):
                 fp = StringIO()
                 traceback.print_exc(file=fp)
                 message = fp.getvalue()
-                print(message)
+                logging.debug(message)
+
                 torch.cuda.empty_cache()
                 time.sleep(5)
         torch.cuda.empty_cache()
-        print(f"iterations:{k+1}")
+        logging.debug(f"iterations:{k+1}")
+
 
 if __name__ == "__main__":
     main(main_config)

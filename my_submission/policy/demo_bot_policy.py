@@ -63,7 +63,7 @@ def check_edge(global_state, my_clone_balls):
 
     return edge_torch
 
-class BotAgent(BaseAgent):
+class MyBotAgent(BaseAgent):
     '''
     Overview:
         A simple script bot

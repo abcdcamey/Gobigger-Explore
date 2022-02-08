@@ -18,8 +18,8 @@ from ding.worker import BaseLearner, BattleSampleSerialCollector, BattleInteract
 from envs import GoBiggerSimpleEnv
 from ding.utils import set_pkg_seed
 from model import GoBiggerHybridActionSimpleV3
-#from gobigger.agents import BotAgent
-from policy.demo_bot_policy import BotAgent
+from gobigger.agents import BotAgent
+from policy.demo_bot_policy import MyBotAgent
 from ding.rl_utils import get_epsilon_greedy_fn
 from tensorboardX import SummaryWriter
 import torch
@@ -32,21 +32,22 @@ import pdb
 import pickle
 import argparse
 
-class RulePolicy:
+class MyRulePolicy:
 
     def __init__(self, team_id: int, player_num_per_team: int):
         self.collect_data = False  # necessary
         self.team_id = team_id
         self.player_num = player_num_per_team
         start, end = team_id * player_num_per_team, (team_id + 1) * player_num_per_team
-        self.bot = [BotAgent(str(team_id), str(i)) for i in range(start, end)]
+        self.bot = [MyBotAgent(str(team_id), str(i)) for i in range(start, end)]
 
     def forward(self, data: dict, **kwargs) -> dict:
         ret = {}
         for env_id in data.keys():
             action = []
-            for bot in self.bot:
-                obs = [data[env_id]["global_state"],data[env_id]["player_state"]]
+            for bot, raw_obs in zip(self.bot, data[env_id]['collate_ignore_raw_obs']):
+                obs = [raw_obs["global_state"], raw_obs["player_state"]]
+                #print(type(data[env_id]["global_state"]), type(data[env_id]["player_state"]))
                 #raw_obs['overlap']['clone'] = [[x[0], x[1], x[2], int(x[3]), int(x[4])]  for x in raw_obs['overlap']['clone']]
                 action.append(bot.step(obs))
             ret[env_id] = {'action': np.array(action)}
@@ -55,7 +56,32 @@ class RulePolicy:
     def reset(self, data_id: list = []) -> None:
         pass
 
+class RulePolicy:
+
+    def __init__(self, team_id: int, player_num_per_team: int):
+        self.collect_data = False  # necessary
+        self.team_id = team_id
+        self.player_num = player_num_per_team
+        start, end = team_id * player_num_per_team, (team_id + 1) * player_num_per_team
+        self.bot = [BotAgent(str(i)) for i in range(start, end)]
+
+    def forward(self, data: dict, **kwargs) -> dict:
+        ret = {}
+        for env_id in data.keys():
+            action = []
+            for bot, raw_obs in zip(self.bot, data[env_id]['collate_ignore_raw_obs']):
+                raw_obs['overlap']['clone'] = [[x[0], x[1], x[2], int(x[3]), int(x[4])]  for x in raw_obs['overlap']['clone']]
+                action.append(bot.step(raw_obs))
+            ret[env_id] = {'action': np.array(action)}
+        return ret
+
+    def reset(self, data_id: list = []) -> None:
+        pass
+
+
 def main(cfg,ckpt_path=None, seed=0, max_iterations=int(1e10)):
+    cfg.exp_name = 'gobigger-v030-vsbot-modify'
+    print(ckpt_path)
     cfg = compile_config(
         cfg,
         SyncSubprocessEnvManager,
@@ -88,15 +114,16 @@ def main(cfg,ckpt_path=None, seed=0, max_iterations=int(1e10)):
     policy = DQNPolicy(cfg.policy, model=model)
 
     if ckpt_path is not None:
-
         f = torch.load(ckpt_path)
         policy.collect_mode.load_state_dict(f)
         logging.debug(f'load model from {ckpt_path}')
 
 
     team_num = cfg.env.team_num
-    rule_collect_policy = [RulePolicy(team_id, cfg.env.player_num_per_team) for team_id in range(1, team_num)]
-    rule_eval_policy = [RulePolicy(team_id, cfg.env.player_num_per_team) for team_id in range(1, team_num)]
+    # rule_collect_policy = [RulePolicy(team_id, cfg.env.player_num_per_team) for team_id in range(1, team_num)]
+    # rule_eval_policy = [RulePolicy(team_id, cfg.env.player_num_per_team) for team_id in range(1, team_num)]
+    rule_collect_policy = [MyRulePolicy(team_id, cfg.env.player_num_per_team) for team_id in range(1, team_num)]
+    rule_eval_policy = [MyRulePolicy(team_id, cfg.env.player_num_per_team) for team_id in range(1, team_num)]
     eps_cfg = cfg.policy.other.eps
     epsilon_greedy = get_epsilon_greedy_fn(eps_cfg.start, eps_cfg.end, eps_cfg.decay, eps_cfg.type)
     tb_logger = SummaryWriter(os.path.join('./{}/log/'.format(cfg.exp_name), 'serial'))

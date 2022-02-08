@@ -122,8 +122,8 @@ def main(cfg,ckpt_path=None, seed=0, max_iterations=int(1e10)):
     team_num = cfg.env.team_num
     # rule_collect_policy = [RulePolicy(team_id, cfg.env.player_num_per_team) for team_id in range(1, team_num)]
     # rule_eval_policy = [RulePolicy(team_id, cfg.env.player_num_per_team) for team_id in range(1, team_num)]
-    rule_collect_policy = [MyRulePolicy(team_id, cfg.env.player_num_per_team) for team_id in range(1, team_num)]
-    rule_eval_policy = [MyRulePolicy(team_id, cfg.env.player_num_per_team) for team_id in range(1, team_num)]
+    rule_collect_policy = [RulePolicy(team_id, cfg.env.player_num_per_team) for team_id in range(1, team_num)]
+    rule_eval_policy = [RulePolicy(team_id, cfg.env.player_num_per_team) for team_id in range(1, team_num)]
     eps_cfg = cfg.policy.other.eps
     epsilon_greedy = get_epsilon_greedy_fn(eps_cfg.start, eps_cfg.end, eps_cfg.decay, eps_cfg.type)
     tb_logger = SummaryWriter(os.path.join('./{}/log/'.format(cfg.exp_name), 'serial'))

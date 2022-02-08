@@ -146,12 +146,12 @@ def main(cfg,ckpt_path=None, seed=0, max_iterations=int(1e10)):
     replay_buffer = NaiveReplayBuffer(cfg.policy.other.replay_buffer, exp_name=cfg.exp_name)
 
     for k in range(max_iterations):
-        # if rule_evaluator.should_eval(learner.train_iter):
-        #     rule_stop_flag, rule_reward, _ = rule_evaluator.eval(
-        #         learner.save_checkpoint, learner.train_iter, collector.envstep
-        #     )
-        #     if rule_stop_flag:
-        #         break
+        if rule_evaluator.should_eval(learner.train_iter):
+            rule_stop_flag, rule_reward, _ = rule_evaluator.eval(
+                learner.save_checkpoint, learner.train_iter, collector.envstep
+            )
+            if rule_stop_flag:
+                break
         try:
             eps = epsilon_greedy(collector.envstep)
             # Sampling data from environments

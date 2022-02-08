@@ -24,7 +24,7 @@ from ding.rl_utils import get_epsilon_greedy_fn
 from tensorboardX import SummaryWriter
 import torch
 import logging
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 from io import StringIO
 import traceback
 import time
@@ -81,7 +81,7 @@ class RulePolicy:
 
 def main(cfg,ckpt_path=None, seed=0, max_iterations=int(1e10)):
     cfg.exp_name = 'gobigger-v030-vsbot-modify'
-    print(ckpt_path)
+    #print(ckpt_path)
     cfg = compile_config(
         cfg,
         SyncSubprocessEnvManager,
@@ -146,13 +146,12 @@ def main(cfg,ckpt_path=None, seed=0, max_iterations=int(1e10)):
     replay_buffer = NaiveReplayBuffer(cfg.policy.other.replay_buffer, exp_name=cfg.exp_name)
 
     for k in range(max_iterations):
-
-        if rule_evaluator.should_eval(learner.train_iter):
-            rule_stop_flag, rule_reward, _ = rule_evaluator.eval(
-                learner.save_checkpoint, learner.train_iter, collector.envstep
-            )
-            if rule_stop_flag:
-                break
+        # if rule_evaluator.should_eval(learner.train_iter):
+        #     rule_stop_flag, rule_reward, _ = rule_evaluator.eval(
+        #         learner.save_checkpoint, learner.train_iter, collector.envstep
+        #     )
+        #     if rule_stop_flag:
+        #         break
         try:
             eps = epsilon_greedy(collector.envstep)
             # Sampling data from environments
@@ -162,7 +161,7 @@ def main(cfg,ckpt_path=None, seed=0, max_iterations=int(1e10)):
             fp = StringIO()
             traceback.print_exc(file=fp)
             message = fp.getvalue()
-            logging.debug(message)
+            logging.error(message)
 
         for i in range(cfg.policy.learn.update_per_collect):
             try:
@@ -172,12 +171,12 @@ def main(cfg,ckpt_path=None, seed=0, max_iterations=int(1e10)):
                 fp = StringIO()
                 traceback.print_exc(file=fp)
                 message = fp.getvalue()
-                logging.debug(message)
+                logging.error(message)
 
                 torch.cuda.empty_cache()
                 time.sleep(5)
         torch.cuda.empty_cache()
-        logging.debug(f"iterations:{k+1}")
+        logging.info(f"iterations:{k+1}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='debug')

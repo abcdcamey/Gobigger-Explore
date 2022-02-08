@@ -102,7 +102,7 @@ class GoBiggerSimpleEnv(GoBiggerEnv):
                 'clone': clone.astype(np.float32),
                 'clone_relation': clone_relation.astype(np.float32),
                 #'collate_ignore_raw_obs': {'overlap': overlap,'player_bot_obs':player_bot_obs},
-                'collate_ignore_raw_obs': {'overlap': overlap, 'global_state': global_state, 'player_state': player_state}
+                'collate_ignore_raw_obs': {'overlap': overlap, 'global_state': global_state, 'player_state': {n:value}}
             }
             obs.append(player_obs)
 

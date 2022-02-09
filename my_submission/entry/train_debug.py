@@ -11,7 +11,7 @@ import numpy as np
 from ding.envs import BaseEnvManager
 import copy
 from ding.envs import SyncSubprocessEnvManager
-from config.gobigger_no_spatial_config import main_config
+from config.gobigger_no_spatial_config_debug import main_config
 from ding.config import compile_config
 from policy.gobigger_policy import DQNPolicy
 from ding.worker import BaseLearner, BattleSampleSerialCollector, BattleInteractionSerialEvaluator, NaiveReplayBuffer
@@ -84,7 +84,7 @@ def main(cfg,ckpt_path=None, seed=0, max_iterations=int(1e10)):
     #print(ckpt_path)
     cfg = compile_config(
         cfg,
-        SyncSubprocessEnvManager,
+        BaseEnvManager,
         DQNPolicy,
         BaseLearner,
         BattleSampleSerialCollector,
@@ -99,10 +99,10 @@ def main(cfg,ckpt_path=None, seed=0, max_iterations=int(1e10)):
     evaluator_env_cfg = copy.deepcopy(cfg.env)
     evaluator_env_cfg.train = False
 
-    collector_env = SyncSubprocessEnvManager(
+    collector_env = BaseEnvManager(
         env_fn=[lambda: GoBiggerSimpleEnv(collector_env_cfg) for _ in range(collector_env_num)], cfg=cfg.env.manager
     )
-    rule_evaluator_env = SyncSubprocessEnvManager(
+    rule_evaluator_env = BaseEnvManager(
         env_fn=[lambda: GoBiggerSimpleEnv(evaluator_env_cfg) for _ in range(evaluator_env_num)], cfg=cfg.env.manager
     )
 
@@ -146,12 +146,12 @@ def main(cfg,ckpt_path=None, seed=0, max_iterations=int(1e10)):
     replay_buffer = NaiveReplayBuffer(cfg.policy.other.replay_buffer, exp_name=cfg.exp_name)
 
     for k in range(max_iterations):
-        if rule_evaluator.should_eval(learner.train_iter):
-            rule_stop_flag, rule_reward, _ = rule_evaluator.eval(
-                learner.save_checkpoint, learner.train_iter, collector.envstep
-            )
-            if rule_stop_flag:
-                break
+        # if rule_evaluator.should_eval(learner.train_iter):
+        #     rule_stop_flag, rule_reward, _ = rule_evaluator.eval(
+        #         learner.save_checkpoint, learner.train_iter, collector.envstep
+        #     )
+        #     if rule_stop_flag:
+        #         break
         try:
             eps = epsilon_greedy(collector.envstep)
             # Sampling data from environments

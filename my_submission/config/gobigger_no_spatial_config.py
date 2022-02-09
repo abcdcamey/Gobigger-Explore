@@ -56,7 +56,7 @@ gobigger_config = dict(
                 end=0.5,
                 decay=100000,
             ),
-            replay_buffer=dict(replay_buffer_size=150000, ),
+            replay_buffer=dict(replay_buffer_size=100000, ),
         ),
     ),
 )

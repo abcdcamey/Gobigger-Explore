@@ -45,8 +45,8 @@ def main(cfg, ckpt_path, seed=0):
     # Evaluator Setting 
     cfg.exp_name = 'gobigger_vsbot_eval'
     cfg.env.spatial = False  # necessary
-    cfg.env.evaluator_env_num = 2
-    cfg.env.n_evaluator_episode = 2
+    cfg.env.evaluator_env_num = 5
+    cfg.env.n_evaluator_episode = 5
 
     cfg = compile_config(
         cfg,
@@ -73,7 +73,7 @@ def main(cfg, ckpt_path, seed=0):
 
         rule_env_cfg.save_quality = 'low'
         rule_env_cfg.save_path = './{}/rule'.format(cfg.exp_name)
-        rule_env_cfg.match_time = 60*7
+        rule_env_cfg.match_time = 60*10
         if not os.path.exists(rule_env_cfg.save_path):
             os.makedirs(rule_env_cfg.save_path)
         rule_env_cfgs.append(rule_env_cfg)

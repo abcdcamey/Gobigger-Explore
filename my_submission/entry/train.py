@@ -113,10 +113,15 @@ def main(cfg,ckpt_path=None, seed=0, max_iterations=int(1e10)):
     model = GoBiggerHybridActionSimpleV3(**cfg.policy.model)
     policy = DQNPolicy(cfg.policy, model=model)
 
+
     if ckpt_path is not None:
         f = torch.load(ckpt_path)
         policy.collect_mode.load_state_dict(f)
+        policy.learn_mode.load_state_dict(f)
+        policy.eval_mode.load_state_dict(f)
+        #cfg.policy.load_path = ckpt_path
         logging.debug(f'load model from {ckpt_path}')
+
 
 
     team_num = cfg.env.team_num

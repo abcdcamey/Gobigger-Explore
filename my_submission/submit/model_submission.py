@@ -45,7 +45,7 @@ class MySubmission(BaseSubmission):
         self.root_path = os.path.abspath(os.path.dirname(__file__))
         self.model = GoBiggerHybridActionSimpleV3(**self.cfg.policy.model)
         self.policy = DQNPolicy(self.cfg.policy, model=self.model)
-        self.policy.eval_mode.load_state_dict(torch.load(os.path.join(self.root_path, 'supplements', 'ckpt_best.pth.tar.ori_bak'), map_location='cpu'))
+        self.policy.eval_mode.load_state_dict(torch.load(os.path.join(self.root_path, 'supplements', 'iteration_47000.pth.tar'), map_location='cpu'))
         self.policy = self.policy.eval_mode
         self.env = GoBiggerSimpleEnv(self.cfg.env)
 

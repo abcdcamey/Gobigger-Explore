@@ -16,8 +16,8 @@ import requests
 import subprocess
 from tqdm import tqdm
 import traceback
-from demo_bot_policy import BotAgent
-from bot_policy import MyBotAgent
+from demo_bot_policy_v2 import MyBotAgent
+#from bot_policy import MyBotAgent
 from gobigger.utils import Border
 from gobigger.server import Server
 from gobigger.render import RealtimeRender, RealtimePartialRender, EnvRender
@@ -73,7 +73,7 @@ def test():
                     agents.append(MyBotAgent(str(index), str(index*server.player_num_per_team+j)))
             else:
                 for j in range(server.player_num_per_team):
-                    agents.append(BotAgent(str(index), str(index*server.player_num_per_team+j)))
+                    agents.append(MyBotAgent(str(index), str(index*server.player_num_per_team+j)))
         except Exception as e:
             logging.error(''.join(traceback.format_tb(e.__traceback__)))
             logging.error(sys.exc_info()[0])
@@ -113,9 +113,9 @@ def test():
 
 if __name__ == '__main__':
     #{v: player_states[v] for v in ['0','1']}
-    test()
-    # from obs_file.action_obs import *
-    # agent = MyBotAgent(str(0), str(0))
-    # agent_obs = action6_obs
-    # action = agent.step(agent_obs)
+    #test()
+    from obs_file.action_obs import *
+    agent = MyBotAgent(str(3), str(11))
+    agent_obs = action7_obs
+    action = agent.step(agent_obs)
     # print(action)

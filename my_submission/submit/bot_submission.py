@@ -1,5 +1,5 @@
 #from policy.bot_policy import MyBotAgent
-from policy.demo_bot_policy import BotAgent
+from .policy.demo_bot_policy import BotAgent
 
 class BaseSubmission:
 
@@ -15,10 +15,10 @@ class BaseSubmission:
         raise NotImplementedError
 
 
-class BotSubmission(BaseSubmission):
+class MySubmission(BaseSubmission):
 
     def __init__(self, team_name, player_names):
-        super(BotSubmission, self).__init__(team_name, player_names)
+        super(MySubmission, self).__init__(team_name, player_names)
         self.agents = {}
         for player_name in self.player_names:
             self.agents[player_name] = BotAgent(team_name=team_name, player_name=player_name)

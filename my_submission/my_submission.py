@@ -1,5 +1,5 @@
 #from policy.bot_policy import MyBotAgent
-from .policy.demo_bot_policy import BotAgent
+from .policy.demo_bot_policy_v2 import MyBotAgent
 
 class BaseSubmission:
 
@@ -21,7 +21,7 @@ class MySubmission(BaseSubmission):
         super(MySubmission, self).__init__(team_name, player_names)
         self.agents = {}
         for player_name in self.player_names:
-            self.agents[player_name] = BotAgent(team_name=team_name, player_name=player_name)
+            self.agents[player_name] = MyBotAgent(team_name=team_name, player_name=player_name)
 
     def get_actions(self, obs):
         global_state, player_states = obs

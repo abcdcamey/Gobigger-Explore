@@ -149,5 +149,6 @@ total_config.py
 
 *.tar
 *.tar.gz
+*.gz
 supplements/
 

@@ -67,6 +67,7 @@ class GoBiggerSimpleEnv(GoBiggerEnv):
             scalar_obs = np.array([rest_time / 600, left_margin / 1000, right_margin / 1000, top_margin / 1000, bottom_margin / 1000])  # dim = 5
 
             # unit feat
+            team_name = value['team_name']
             overlap = value['overlap']
             team_id, player_id = self._unit_id(n, value['team_name'], n, value['team_name'], self._player_num_per_team) #always [0,0]
             # load units
@@ -102,8 +103,9 @@ class GoBiggerSimpleEnv(GoBiggerEnv):
                 'clone': clone.astype(np.float32),
                 'clone_relation': clone_relation.astype(np.float32),
                 #'collate_ignore_raw_obs': {'overlap': overlap,'player_bot_obs':player_bot_obs},
-                #'collate_ignore_raw_obs': {'overlap': overlap, 'global_state': global_state, 'player_state': {n:value}}
-                'collate_ignore_raw_obs': {'overlap': overlap}
+                #'collate_ignore_raw_obs': {'overlap': overlap, 'global_state': global_state}
+                'collate_ignore_raw_obs': {'overlap': overlap, 'global_state': global_state,
+                                           'rectangle': value['rectangle'], 'team_name': team_name}
             }
             obs.append(player_obs)
 
@@ -135,6 +137,7 @@ class GoBiggerSimpleEnv(GoBiggerEnv):
             scalar_obs = np.array([rest_time / 600, left_margin / 1000, right_margin / 1000, top_margin / 1000, bottom_margin / 1000])  # dim = 5
 
             # unit feat
+            team_name = value['team_name']
             overlap = value['overlap']
             team_id, player_id = self._unit_id(n, value['team_name'], n, value['team_name'], self._player_num_per_team) #always [0,0]
             # load units
@@ -170,8 +173,10 @@ class GoBiggerSimpleEnv(GoBiggerEnv):
                 'clone': clone.astype(np.float32),
                 'clone_relation': clone_relation.astype(np.float32),
                 #'collate_ignore_raw_obs': {'overlap': overlap,'player_bot_obs':player_bot_obs},
-                #'collate_ignore_raw_obs': {'overlap': overlap, 'global_state': global_state, 'player_state': {n:value}}
-                'collate_ignore_raw_obs': {'overlap': overlap}
+                #'collate_ignore_raw_obs': {'overlap': overlap, 'global_state': global_state}
+                'collate_ignore_raw_obs': {'overlap': overlap, 'global_state': global_state,
+                                           'rectangle': value['rectangle'], 'team_name': team_name}
+
             }
             #print(f"env:",type(global_state),type(player_state))
             obs.append(player_obs)

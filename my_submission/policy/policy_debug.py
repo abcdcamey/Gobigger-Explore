@@ -16,7 +16,7 @@ import requests
 import subprocess
 from tqdm import tqdm
 import traceback
-from demo_bot_policy_v2 import MyBotAgent
+from demo_bot_policy_v3 import MyBotAgent
 #from bot_policy import MyBotAgent
 from gobigger.utils import Border
 from gobigger.server import Server
@@ -115,7 +115,7 @@ if __name__ == '__main__':
     #{v: player_states[v] for v in ['0','1']}
     #test()
     from obs_file.action_obs import *
-    agent = MyBotAgent(str(3), str(11))
-    agent_obs = action7_obs
+    agent = MyBotAgent(str(0), str(0))
+    agent_obs = action8_obs
     action = agent.step(agent_obs)
     # print(action)

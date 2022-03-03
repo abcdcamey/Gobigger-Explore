@@ -16,17 +16,19 @@ from ding.config import compile_config
 from ding.worker import BaseLearner, BattleSampleSerialCollector, BattleInteractionSerialEvaluator, NaiveReplayBuffer
 from ding.envs import SyncSubprocessEnvManager, BaseEnvManager
 from policy.gobigger_policy import DQNPolicy
-from policy.my_gobigger_policy_v1 import MyDQNPolicy
+from policy.my_gobigger_policy_v2 import MyDQNPolicy
 from ding.utils import set_pkg_seed
-#from gobigger.agents import BotAgent
+from gobigger.agents import BotAgent
 import random
-from envs import GoBiggerSimpleEnv, MyGoBiggerEnvV1
+from envs import GoBiggerSimpleEnv, MyGoBiggerEnvV1, MyGoBiggerEnvV2
 from model import GoBiggerHybridActionSimpleV3, MyGoBiggerHybridActionV1
 from config.gobigger_no_spatial_config_my_v1 import main_config
 import torch
 import argparse
 from policy.demo_bot_policy_v1 import MyBotAgent as MyBotAgentV1
 from policy.demo_bot_policy_v2 import MyBotAgent as MyBotAgentV2
+from policy.demo_bot_policy_v3 import MyBotAgent as MyBotAgentV3
+
 import logging
 
 
@@ -58,14 +60,14 @@ class MyRulePolicyV2:
     def reset(self, data_id: list = []) -> None:
         pass
 
-class MyRulePolicyV1:
+class MyRulePolicyV3:
 
     def __init__(self, team_id: int, player_num_per_team: int):
         self.collect_data = False  # necessary
         self.team_id = team_id
         self.player_num = player_num_per_team
         start, end = team_id * player_num_per_team, (team_id + 1) * player_num_per_team
-        self.bot = [MyBotAgentV1(str(team_id), str(i)) for i in range(start, end)]
+        self.bot = [MyBotAgentV3(str(team_id), str(i)) for i in range(start, end)]
 
     def forward(self, data: dict, **kwargs) -> dict:
         ret = {}
@@ -94,7 +96,7 @@ class RulePolicy:
         self.team_id = team_id
         self.player_num = player_num_per_team
         start, end = team_id * player_num_per_team, (team_id + 1) * player_num_per_team
-        self.bot = [MyBotAgentV1(str(i)) for i in range(start, end)]
+        self.bot = [BotAgent(str(i)) for i in range(start, end)]
 
     def forward(self, data: dict, **kwargs) -> dict:
         ret = {}
@@ -115,8 +117,8 @@ def main(cfg, ckpt_path, seed=0):
     # Evaluator Setting
     cfg.exp_name = 'gobigger_vsbot_eval'
     cfg.env.spatial = False  # necessary
-    cfg.env.evaluator_env_num = 1
-    cfg.env.n_evaluator_episode = 3
+    cfg.env.evaluator_env_num = 2
+    cfg.env.n_evaluator_episode = 8
 
     cfg = compile_config(
         cfg,
@@ -128,7 +130,7 @@ def main(cfg, ckpt_path, seed=0):
         NaiveReplayBuffer,
         save_cfg=True
     )
-
+    cfg.policy.cuda=False
     evaluator_env_num = cfg.env.evaluator_env_num
 
     rule_env_cfgs = []
@@ -137,7 +139,7 @@ def main(cfg, ckpt_path, seed=0):
 
         rule_env_cfg.train = False
         # if i==0:
-        rule_env_cfg.save_video = True
+        rule_env_cfg.save_video = False
         # else:
         # rule_env_cfg.save_video = False
 
@@ -149,7 +151,7 @@ def main(cfg, ckpt_path, seed=0):
         rule_env_cfgs.append(rule_env_cfg)
 
     rule_evaluator_env = BaseEnvManager(
-        env_fn=[lambda: MyGoBiggerEnvV1(x) for x in rule_env_cfgs], cfg=cfg.env.manager
+        env_fn=[lambda: MyGoBiggerEnvV2(x) for x in rule_env_cfgs], cfg=cfg.env.manager
     )
 
     rule_evaluator_env.seed(seed, dynamic_seed=False)
@@ -166,13 +168,18 @@ def main(cfg, ckpt_path, seed=0):
         print(f'load model from {ckpt_path}')
 
     team_num = cfg.env.team_num
-    rule_eval_policy = [MyRulePolicyV1(team_id, cfg.env.player_num_per_team) for team_id in range(1, team_num)]
+    #rule_eval_policy1 = [RulePolicy(team_id, cfg.env.player_num_per_team) for team_id in range(1, 4)]
+
+    #rule_eval_policy2 = [MyRulePolicyV2(team_id, cfg.env.player_num_per_team) for team_id in range(2, 3)]
+
+    rule_eval_policy3 = [MyRulePolicyV3(team_id, cfg.env.player_num_per_team) for team_id in range(1, 4)]
+
 
     tb_logger = SummaryWriter(os.path.join('./{}/log/'.format(cfg.exp_name), 'serial'))
 
     rule_evaluator = BattleInteractionSerialEvaluator(
         cfg.policy.eval.evaluator,
-        rule_evaluator_env, [policy.eval_mode] + rule_eval_policy,
+        rule_evaluator_env, [policy.eval_mode] + rule_eval_policy3 ,
         tb_logger,
         exp_name=cfg.exp_name,
         instance_name='rule_evaluator'
@@ -185,4 +192,5 @@ if __name__ == "__main__":
     parser.add_argument('--ckpt', '-c', help='checkpoint for evaluation')
     args = parser.parse_args()
     seed = random.randint(0, 999999)
+    #seed = 1
     main(main_config, ckpt_path=args.ckpt, seed=seed)

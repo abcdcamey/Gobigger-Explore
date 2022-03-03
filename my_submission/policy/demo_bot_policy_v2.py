@@ -111,46 +111,42 @@ def adjust_direction(global_state, my_clone_balls, action_ret):
     if action_ret[0] is not None and action_ret[1] is not None:
         if edge_torch[0] > 0 and action_ret[0] < 0 and abs(action_ret[1]) > 0.0001:
             new_direction = Vector2(0.001, action_ret[1]).normalize()
-
             action_ret[0] = new_direction.x
             action_ret[1] = new_direction.y
         if edge_torch[1] > 0 and action_ret[1] < 0 and abs(action_ret[0]) > 0.0001:
             new_direction = Vector2(action_ret[0], 0.001).normalize()
-
             action_ret[0] = new_direction.x
             action_ret[1] = new_direction.y
         if edge_torch[2] > 0 and action_ret[0] > 0 and abs(action_ret[1]) > 0.0001:
             new_direction = Vector2(0.001, action_ret[1]).normalize()
-
             action_ret[0] = new_direction.x
             action_ret[1] = new_direction.y
         if edge_torch[3] > 0 and action_ret[1] > 0 and abs(action_ret[0]) > 0.0001:
             new_direction = Vector2(action_ret[0], 0.001).normalize()
-
             action_ret[0] = new_direction.x
             action_ret[1] = new_direction.y
-        if edge_torch[0]>0 and edge_torch[1]>0 and action_ret[0]<0 and action_ret[1]<0 and len(my_clone_balls)==1: #被逼到左上角
+        if edge_torch[0]>0 and edge_torch[1]>0 and action_ret[0]<0 and action_ret[1]<0 and len(my_clone_balls)<=2: #被逼到左上角
             if abs(action_ret[0])>abs(action_ret[1]):
                 action_ret[0]= 0.0001
                 action_ret[1] = 0.99
             else:
                 action_ret[0] = 0.99
                 action_ret[1] = 0.0001
-        if edge_torch[2]>0 and edge_torch[1]>0 and action_ret[0]>0 and action_ret[1]<0 and len(my_clone_balls)==1:# 右上角
+        if edge_torch[2]>0 and edge_torch[1]>0 and action_ret[0]>0 and action_ret[1]<0 and len(my_clone_balls)<=2:# 右上角
             if abs(action_ret[0])>abs(action_ret[1]):
                 action_ret[0]= 0.0001
                 action_ret[1] = 0.99
             else:
                 action_ret[0] = -0.99
                 action_ret[1] = 0.0001
-        if edge_torch[2]>0 and edge_torch[3]>0 and action_ret[0]>0 and action_ret[1]>0 and len(my_clone_balls)==1:# 右下角
+        if edge_torch[2]>0 and edge_torch[3]>0 and action_ret[0]>0 and action_ret[1]>0 and len(my_clone_balls)<=2:# 右下角
             if abs(action_ret[0])>abs(action_ret[1]):
                 action_ret[0] = 0.0001
                 action_ret[1] = -0.99
             else:
                 action_ret[0] = -0.99
                 action_ret[1] = 0.0001
-        if edge_torch[0]>0 and edge_torch[3]>0 and action_ret[0]<0 and action_ret[1]>0 and len(my_clone_balls)==1: #左下角
+        if edge_torch[0]>0 and edge_torch[3]>0 and action_ret[0]<0 and action_ret[1]>0 and len(my_clone_balls)<=2: #左下角
             if abs(action_ret[0])>abs(action_ret[1]):
                 action_ret[0] = 0.0001
                 action_ret[1] = -0.99
@@ -182,10 +178,10 @@ class MyBotAgent(BaseAgent):
         if self.level == 2:
             return self.step_level_2(player_state.get(self.player_name))
         if self.level == 3:
-            logging.info(f"player_name:{self.player_name},time:{global_state.get('last_time')},leaderboard:{global_state.get('leaderboard')}")
-            logging.info(f"overlap:{player_state.get(self.player_name).get('overlap')}")
+            #logging.info(f"player_name:{self.player_name},time:{global_state.get('last_time')},leaderboard:{global_state.get('leaderboard')}")
+            #logging.info(f"overlap:{player_state.get(self.player_name).get('overlap')}")
             action_ret = self.step_level_3(global_state, player_state.get(self.player_name))
-            logging.info(f"action_ret:{action_ret}")
+            #logging.info(f"action_ret:{action_ret}")
             return action_ret
 
     def step_level_1(self, obs):

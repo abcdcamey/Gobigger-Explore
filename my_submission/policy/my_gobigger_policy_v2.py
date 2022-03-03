@@ -4,7 +4,7 @@ import copy
 import torch
 
 from ding.torch_utils import Adam, to_device
-from ding.rl_utils import q_nstep_td_data, q_nstep_td_error, get_nstep_return_data, get_train_sample
+from ding.rl_utils import get_nstep_return_data, get_train_sample, q_nstep_td_data
 from ding.model import model_wrap
 from ding.utils import POLICY_REGISTRY
 from ding.utils.data import default_collate, default_decollate
@@ -129,11 +129,92 @@ def default_preprocess_learn(
     if use_nstep:
         # Reward reshaping for n-step
         reward = data['reward']
-        if len(reward.shape) == 1:
-            reward = reward.unsqueeze(1)
+        # if len(reward.shape) == 2:
+        #     reward = reward.unsqueeze(2)
         # reward: (batch_size, nstep) -> (nstep, batch_size)
-        data['reward'] = reward.permute(1, 0).contiguous()
+        #data['reward'] = reward.permute(1, 0).contiguous()
     return data
+
+def view_similar(x: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+    size = list(x.shape) + [1 for _ in range(len(target.shape) - len(x.shape))]
+    return x.view(*size)
+nstep_return_data = namedtuple('nstep_return_data', ['reward', 'next_value', 'done'])
+import torch.nn as nn
+from typing import Any, Optional, Callable
+
+def nstep_return(data: namedtuple, gamma: float, nstep: int, value_gamma: Optional[torch.Tensor] = None):
+    reward, next_value, done = data
+    assert reward.shape[0] == nstep
+    device = reward.device
+    reward_factor = torch.ones(nstep).to(device)
+    for i in range(1, nstep):
+        reward_factor[i] = gamma * reward_factor[i - 1]
+    reward_factor = view_similar(reward_factor, reward)
+    reward = reward.mul(reward_factor).sum(0)
+    if value_gamma is None:
+        return_ = reward + (gamma ** nstep) * next_value * (1 - done)
+    else:
+        return_ = reward + value_gamma * next_value * (1 - done)
+    return return_
+
+
+def q_nstep_td_error(
+        data: namedtuple,
+        gamma: float,
+        nstep: int = 1,
+        cum_reward: bool = False,
+        value_gamma: Optional[torch.Tensor] = None,
+        criterion: torch.nn.modules = nn.L1Loss(reduction='none'),
+) -> torch.Tensor:
+    """
+    Overview:
+        Multistep (1 step or n step) td_error for q-learning based algorithm
+    Arguments:
+        - data (:obj:`q_nstep_td_data`): the input data, q_nstep_td_data to calculate loss
+        - gamma (:obj:`float`): discount factor
+        - cum_reward (:obj:`bool`): whether to use cumulative nstep reward, which is figured out when collecting data
+        - value_gamma (:obj:`torch.Tensor`): gamma discount value for target q_value
+        - criterion (:obj:`torch.nn.modules`): loss function criterion
+        - nstep (:obj:`int`): nstep num, default set to 1
+    Returns:
+        - loss (:obj:`torch.Tensor`): nstep td error, 0-dim tensor
+        - td_error_per_sample (:obj:`torch.Tensor`): nstep td error, 1-dim tensor
+    Shapes:
+        - data (:obj:`q_nstep_td_data`): the q_nstep_td_data containing\
+            ['q', 'next_n_q', 'action', 'reward', 'done']
+        - q (:obj:`torch.FloatTensor`): :math:`(B, N)` i.e. [batch_size, action_dim]
+        - next_n_q (:obj:`torch.FloatTensor`): :math:`(B, N)`
+        - action (:obj:`torch.LongTensor`): :math:`(B, )`
+        - next_n_action (:obj:`torch.LongTensor`): :math:`(B, )`
+        - reward (:obj:`torch.FloatTensor`): :math:`(T, B)`, where T is timestep(nstep)
+        - done (:obj:`torch.BoolTensor`) :math:`(B, )`, whether done in last timestep
+        - td_error_per_sample (:obj:`torch.FloatTensor`): :math:`(B, )`
+    """
+    q, next_n_q, action, next_n_action, reward, done, weight = data
+    if weight is None:
+        weight = torch.ones_like(reward)
+    if len(action.shape) > 1:  # MARL case
+        #reward = reward.unsqueeze(0)
+        #weight = weight.unsqueeze(-1)
+        done = done.unsqueeze(-1)
+        if value_gamma is not None:
+            value_gamma = value_gamma.unsqueeze(-1)
+
+    q_s_a = q.gather(-1, action.unsqueeze(-1)).squeeze(-1)
+    target_q_s_a = next_n_q.gather(-1, next_n_action.unsqueeze(-1)).squeeze(-1)
+
+    if cum_reward:
+        if value_gamma is None:
+            target_q_s_a = reward + (gamma ** nstep) * target_q_s_a * (1 - done)
+        else:
+            target_q_s_a = reward + value_gamma * target_q_s_a * (1 - done)
+    else:
+
+        target_q_s_a = nstep_return(nstep_return_data(reward, target_q_s_a, done), gamma, nstep, value_gamma)
+    td_error_per_sample = criterion(q_s_a, target_q_s_a.detach())
+    return (td_error_per_sample * weight).mean(), td_error_per_sample
+
+
 
 
 @POLICY_REGISTRY.register('my_gobigger_dqn')
@@ -253,7 +334,7 @@ class MyDQNPolicy(Policy):
         # Optimizer
         self._optimizer = Adam(self._model.parameters(), lr=self._cfg.learn.learning_rate)
 
-        self._lr_scheduler = MultiStepLR(self._optimizer, milestones=[20000, 30000, 40000, 50000, 60000], gamma=np.float64(0.6))
+        self._lr_scheduler = MultiStepLR(self._optimizer, milestones=[20000, 32000, 42000, 50000, 60000], gamma=np.float64(0.6))
         #self._lr_scheduler = MultiStepLR(self._optimizer, milestones=[10, 15, 25000, 30000, 33000], gamma=np.float64(0.6))
 
         self._gamma = self._cfg.discount_factor
@@ -476,8 +557,9 @@ class MyDQNPolicy(Policy):
             And the user can customize the this data processing procecure by overriding this two methods and collector \
             itself.
         """
-        cum_reward = True if self._nstep>1 else False
-        data = get_nstep_return_data(data, self._nstep,cum_reward = cum_reward, gamma=self._gamma)
+        cum_reward = True
+        data = get_nstep_return_data(data, self._nstep, cum_reward = cum_reward, gamma=self._gamma)
+
         return get_train_sample(data, self._unroll_len)
 
     def _process_transition(self, obs: Any, policy_output: Dict[str, Any], timestep: namedtuple) -> Dict[str, Any]:
@@ -526,7 +608,7 @@ class MyDQNPolicy(Policy):
             - necessary: ``action``
         """
         data_id = list(data.keys())
-        logging.info(f"data:{data[0]['collate_ignore_raw_obs']}")
+        #logging.info(f"data:{data[0]['collate_ignore_raw_obs']}")
 
         data = gobigger_collate(list(data.values()))
         if self._cuda:
@@ -538,7 +620,7 @@ class MyDQNPolicy(Policy):
         if self._cuda:
             output = to_device(output, 'cpu')
         output = default_decollate(output)
-        logging.info(f"output:{output}")
+        #logging.info(f"output:{output}")
         return {i: d for i, d in zip(data_id, output)}
 
     def default_model(self) -> Tuple[str, List[str]]:

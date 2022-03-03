@@ -2,7 +2,7 @@
 """
 # Author      : Camey
 # DateTime    : 2022/1/23 11:27 上午
-# Description :
+# Description : 
 """
 # -*- coding: utf-8 -*-
 """
@@ -17,12 +17,10 @@ import queue
 from pygame.math import Vector2
 
 from gobigger.agents.base_agent import BaseAgent
-import sys,os
+import sys, os
 curr_path = os.path.dirname(__file__)
 parent_path = os.path.dirname(curr_path)
 sys.path.append(parent_path)
-import math
-from collections import defaultdict
 import logging
 import time
 logger = logging.getLogger()
@@ -42,8 +40,8 @@ formatter = logging.Formatter("%(asctime)s - %(filename)s[line:%(lineno)d] - %(l
 fh.setFormatter(formatter)
 # 第四步，将logger添加到handler里面
 logger.addHandler(fh)
-
-
+import math
+from collections import defaultdict
 
 def distance(position_1,position_2):
     return (position_1 - position_2).length()
@@ -106,6 +104,92 @@ def check_edge(global_state, my_clone_balls):
 
     return edge_torch
 
+def adjust_direction(global_state, my_clone_balls, action_ret):
+    if action_ret[2]!=-1:
+        return action_ret
+    edge_torch = check_edge(global_state, my_clone_balls)
+    if action_ret[0] is not None and action_ret[1] is not None:
+        if edge_torch[0] > 0 and action_ret[0] < 0 and abs(action_ret[1]) > 0.0001:
+            new_direction = Vector2(0.001, action_ret[1]).normalize()
+            action_ret[0] = new_direction.x
+            action_ret[1] = new_direction.y
+        if edge_torch[1] > 0 and action_ret[1] < 0 and abs(action_ret[0]) > 0.0001:
+            new_direction = Vector2(action_ret[0], 0.001).normalize()
+            action_ret[0] = new_direction.x
+            action_ret[1] = new_direction.y
+        if edge_torch[2] > 0 and action_ret[0] > 0 and abs(action_ret[1]) > 0.0001:
+            new_direction = Vector2(0.001, action_ret[1]).normalize()
+            action_ret[0] = new_direction.x
+            action_ret[1] = new_direction.y
+        if edge_torch[3] > 0 and action_ret[1] > 0 and abs(action_ret[0]) > 0.0001:
+            new_direction = Vector2(action_ret[0], 0.001).normalize()
+            action_ret[0] = new_direction.x
+            action_ret[1] = new_direction.y
+        if edge_torch[0]>0 and edge_torch[1]>0 and action_ret[0]<0 and action_ret[1]<0 and len(my_clone_balls)<=2: #被逼到左上角
+            if abs(action_ret[0])>abs(action_ret[1]):
+                action_ret[0]= 0.0001
+                action_ret[1] = 0.99
+            else:
+                action_ret[0] = 0.99
+                action_ret[1] = 0.0001
+            if random.random() < 0.2:
+                action_ret[2] = 1
+        if edge_torch[2]>0 and edge_torch[1]>0 and action_ret[0]>0 and action_ret[1]<0 and len(my_clone_balls)<=2:# 右上角
+            if abs(action_ret[0])>abs(action_ret[1]):
+                action_ret[0]= 0.0001
+                action_ret[1] = 0.99
+            else:
+                action_ret[0] = -0.99
+                action_ret[1] = 0.0001
+            if random.random() < 0.2:
+                action_ret[2] = 1
+        if edge_torch[2]>0 and edge_torch[3]>0 and action_ret[0]>0 and action_ret[1]>0 and len(my_clone_balls)<=2:# 右下角
+            if abs(action_ret[0])>abs(action_ret[1]):
+                action_ret[0] = 0.0001
+                action_ret[1] = -0.99
+            else:
+                action_ret[0] = -0.99
+                action_ret[1] = 0.0001
+            if random.random() < 0.2:
+                action_ret[2] = 1
+        if edge_torch[0]>0 and edge_torch[3]>0 and action_ret[0]<0 and action_ret[1]>0 and len(my_clone_balls)<=2: #左下角
+            if abs(action_ret[0])>abs(action_ret[1]):
+                action_ret[0] = 0.0001
+                action_ret[1] = -0.99
+            else:
+                action_ret[0] = 0.99
+                action_ret[1] = 0.0001
+            if random.random() < 0.2:
+                action_ret[2] = 1
+    return action_ret
+
+def get_min_size_enemy_position(team_obs,team_id):
+    player_dict = defaultdict(list)
+    for obs in team_obs:
+        if obs is None:
+            continue
+        overlap = obs['overlap']
+        clone_balls = overlap['clone']
+        for ball in clone_balls:
+            if ball[-1] != team_id:
+                player_dict[ball[-2]].append(ball)
+
+    for k, v in player_dict.items():
+        v.sort(key=lambda a: a[2], reverse=False)
+        player_dict[k] = v
+
+    tmp_list = []
+    for k, v in player_dict.items():
+        if len(v) > 0:
+            tmp_list.append(v[0])
+    if len(tmp_list) > 0:
+        min_idx = 0
+        for i in range(len(tmp_list)):
+            if tmp_list[i][2]<tmp_list[min_idx][2]:
+                min_idx = i
+        return tmp_list[min_idx]
+    else:
+        return None
 class MyBotAgent(BaseAgent):
     '''
     Overview:
@@ -125,72 +209,17 @@ class MyBotAgent(BaseAgent):
     def step(self, obs):
         global_state, player_state = obs
 
-        if self.level == 1:
-            return self.step_level_1(player_state.get(self.player_name))
-        if self.level == 2:
-            return self.step_level_2(player_state.get(self.player_name))
         if self.level == 3:
             #logging.info(f"player_name:{self.player_name},time:{global_state.get('last_time')},leaderboard:{global_state.get('leaderboard')}")
-
-            action_ret = self.step_level_3(global_state, player_state.get(self.player_name))
+            #logging.info(f"overlap:{player_state.get(self.player_name).get('overlap')}")
+            my_obs = player_state.get(self.player_name)
+            team_obs = [player_state.get(str(i)) for i in range(int(self.team_name)*3, (int(self.team_name)+1)*3)]
+            action_ret = self.step_level_3(global_state, my_obs, team_obs)
+            #logging.info(f"action_ret:{action_ret}")
             return action_ret
 
-    def step_level_1(self, obs):
-        if self.actions_queue.qsize() > 0:
-            return self.actions_queue.get()
-        overlap = obs['overlap']
-        overlap = self.preprocess(overlap)
-        food_balls = overlap['food']
-        thorns_balls = overlap['thorns']
-        spore_balls = overlap['spore']
-        clone_balls = overlap['clone']
-
-        my_clone_balls, others_clone_balls = self.process_clone_balls(clone_balls)
-        min_distance, min_food_ball = self.process_food_balls(food_balls, my_clone_balls[0])
-        #print("my_clone_balls.radius:", my_clone_balls[0]['radius'])
-        if min_food_ball is not None:
-            direction = (min_food_ball['position'] - my_clone_balls[0]['position']).normalize()
-        else:
-            direction = (Vector2(0, 0) - my_clone_balls[0]['position']).normalize()
-        action_type = -1
-        #print(my_clone_balls[0]['radius'],distance(my_clone_balls[0]['position'], min_food_ball['position']))
-        if my_clone_balls[0]['radius']<5.5 and distance(my_clone_balls[0]['position'], min_food_ball['position'])<10:
-            self.actions_queue.put([direction.x, direction.y, action_type])
-            direction = self.add_noise_to_direction(direction, noise_ratio=0.5)
-            self.actions_queue.put([direction.x, direction.y, action_type])
-        else:
-            self.actions_queue.put([direction.x, direction.y, action_type])
-        action_ret = self.actions_queue.get()
-        return action_ret
-
-    def step_level_2(self, obs):
-        if self.actions_queue.qsize() > 0:
-            return self.actions_queue.get()
-        overlap = obs['overlap']
-        overlap = self.preprocess(overlap)
-        food_balls = overlap['food']
-        thorns_balls = overlap['thorns']
-        spore_balls = overlap['spore']
-        clone_balls = overlap['clone']
-
-        my_clone_balls, others_clone_balls = self.process_clone_balls(clone_balls)
-        min_distance, min_thorns_ball = self.process_thorns_balls(thorns_balls, my_clone_balls[0])
-        if min_thorns_ball is not None:
-            direction = (min_thorns_ball['position'] - my_clone_balls[0]['position']).normalize()
-        else:
-            direction = (Vector2(0, 0) - my_clone_balls[0]['position']).normalize()
-        action_type = -1
-        self.actions_queue.put([direction.x, direction.y, action_type])
-        self.actions_queue.put([None, None, -1])
-        self.actions_queue.put([None, None, -1])
-        self.actions_queue.put([None, None, -1])
-        self.actions_queue.put([None, None, -1])
-        self.actions_queue.put([None, None, -1])
-        action_ret = self.actions_queue.get()
-        return action_ret
-
-    def step_level_3(self, global_state, obs):
-        overlap = obs['overlap']
+    def step_level_3(self, global_state, my_obs, team_obs):
+        overlap = my_obs['overlap']
         overlap = self.preprocess(overlap)
 
         food_balls = overlap['food']
@@ -200,13 +229,18 @@ class MyBotAgent(BaseAgent):
         clone_balls = overlap['clone']
         my_clone_balls, teammate_clone_balls, enemy_clone_balls = self.process_clone_balls(clone_balls)  # modify2
 
+
         if self.actions_queue.qsize() > 0:
             dangerous_status, safe_direction = check_clone_dangerous(my_clone_balls, enemy_clone_balls)
             if dangerous_status > 0:
                 self.actions_queue = queue.Queue()
-                return [safe_direction.x, safe_direction.y, -1]
+                action_ret = [safe_direction.x, safe_direction.y, -1]
+                action_ret = adjust_direction(global_state, my_clone_balls, action_ret)
+                return action_ret
             else:
-                return self.actions_queue.get()
+                action_ret = self.actions_queue.get()
+                action_ret = adjust_direction(global_state, my_clone_balls, action_ret)
+                return action_ret
 
 
         #print(my_clone_balls[0]['position'], my_clone_balls[0]['radius'])
@@ -243,7 +277,16 @@ class MyBotAgent(BaseAgent):
                 direction = (min_thorns_ball['position'] - my_clone_balls[0]['position']).normalize()
             else:
                 if min_food_ball is not None:
-                    direction = (min_food_ball['position'] - my_clone_balls[0]['position']).normalize()
+                    dis = distance(my_clone_balls[0]['position'],min_food_ball['position'])
+                    if (dis-my_clone_balls[0]['radius'])<=10:
+                        direction = (min_food_ball['position'] - my_clone_balls[0]['position']).normalize()
+                    else:
+                        min_size_enemy = get_min_size_enemy_position(team_obs + [my_obs],
+                                                                     int(self.team_name))
+                        if min_size_enemy is not None and my_clone_balls[0]['radius']>min_size_enemy[2]:
+                            direction = (Vector2(min_size_enemy[0],min_size_enemy[1])-my_clone_balls[0]['position']).normalize()
+                        else:
+                            direction = (min_food_ball['position'] - my_clone_balls[0]['position']).normalize()
                 else:
                     direction = (Vector2(0, 0) - my_clone_balls[0]['position']).normalize()
             action_random = random.random()
@@ -263,33 +306,7 @@ class MyBotAgent(BaseAgent):
             self.actions_queue.put([direction.x, direction.y, action_type])
         action_ret = self.actions_queue.get()
 
-        #modify4
-        edge_torch = check_edge(global_state, my_clone_balls)
-        if action_ret[0] is not None and action_ret[1] is not None:
-            if edge_torch[0]>0 and action_ret[0]<0 and abs(action_ret[1])>0.0001:
-                new_direction = Vector2(0, action_ret[1]).normalize()
-                #print(self.player_name,"left",edge_torch, action_ret[:2], new_direction)
-
-                action_ret[0] = new_direction.x
-                action_ret[1] = new_direction.y
-            if edge_torch[1]>0 and action_ret[1]<0 and abs(action_ret[0])>0.0001:
-                new_direction = Vector2(action_ret[0], 0).normalize()
-                #print(self.player_name,"top",edge_torch, action_ret[:2], new_direction)
-
-                action_ret[0] = new_direction.x
-                action_ret[1] = new_direction.y
-            if edge_torch[2]>0 and action_ret[0]>0 and abs(action_ret[1])>0.0001:
-                new_direction = Vector2(0, action_ret[1]).normalize()
-                #print(self.player_name,"right",edge_torch, action_ret[:2], new_direction)
-
-                action_ret[0] = new_direction.x
-                action_ret[1] = new_direction.y
-            if edge_torch[3]>0 and action_ret[1]>0 and abs(action_ret[0])>0.0001:
-                new_direction = Vector2(action_ret[0], 0).normalize()
-                #print(self.player_name,"down",edge_torch, action_ret[:2], new_direction)
-
-                action_ret[0] = new_direction.x
-                action_ret[1] = new_direction.y
+        action_ret = adjust_direction(global_state,my_clone_balls,action_ret)
 
         return action_ret
 

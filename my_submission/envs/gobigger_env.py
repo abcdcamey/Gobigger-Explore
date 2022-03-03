@@ -11,7 +11,7 @@ from ding.torch_utils import to_tensor, to_ndarray, to_list
 from ding.utils import ENV_REGISTRY
 from gobigger.server import Server
 from gobigger.render import EnvRender
-
+import logging
 
 def one_hot_np(value: int, num_cls: int):
     ret = np.zeros(num_cls)
@@ -256,6 +256,7 @@ class GoBiggerEnv(BaseEnv):
             leaderboard_sorted = sorted(leaderboard.items(), key=lambda x: x[1], reverse=True)
             win_rate = self.win_rate(leaderboard_sorted)
             print('win_rate:{:.3f}, leaderboard_sorted:{}'.format(win_rate, leaderboard_sorted))
+            logging.info('win_rate:{:.3f}, leaderboard_sorted:{}'.format(win_rate, leaderboard_sorted))
         return BaseEnvTimestep(obs, rew, done, info)
 
     def win_rate(self, leaderboard_sorted):

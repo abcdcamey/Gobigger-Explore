@@ -21,11 +21,11 @@ gobigger_config = dict(
         manager=dict(shared_memory=False, ),
     ),
     policy=dict(
-        cuda=True,
+        cuda=False,
         on_policy=False,
-        priority=True, #defalut False
+        priority=False, #defalut False
         priority_IS_weight=False,#defalut False
-        nstep=3,
+        #nstep=3,
         model=dict(
             scalar_shape=5,
             food_shape=2,
@@ -56,7 +56,7 @@ gobigger_config = dict(
                 end=0.5,
                 decay=100000,
             ),
-            replay_buffer=dict(replay_buffer_size=90000, ),
+            replay_buffer=dict(replay_buffer_size=70000, ),
         ),
     ),
 )

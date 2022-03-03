@@ -14,7 +14,8 @@ from ding.envs.common.env_element import EnvElement, EnvElementInfo
 from ding.torch_utils import to_tensor, to_ndarray, to_list
 from ding.utils import ENV_REGISTRY
 from .gobigger_env import GoBiggerEnv
-
+from collections import defaultdict
+import logging
 
 
 def unit_id(unit_player, unit_team, ego_player, ego_team, team_size):
@@ -47,7 +48,7 @@ def tanh(x):
 
 
 @ENV_REGISTRY.register('gobigger_simple',force_overwrite=True)
-class MyGoBiggerEnvV1(GoBiggerEnv):
+class MyGoBiggerEnvV2(GoBiggerEnv):
     def __init__(self, cfg: dict) -> None:
         self._cfg = cfg
         self._player_num_per_team = cfg.player_num_per_team
@@ -66,6 +67,7 @@ class MyGoBiggerEnvV1(GoBiggerEnv):
                 with_spatial=self._spatial,
                 with_speed=self._speed,
                 with_all_vision=self._all_vision)
+        self._last_player_size = None
 
     def _unit_id(self, unit_player, unit_team, ego_player, ego_team, team_size):
         return unit_id(unit_player, unit_team, ego_player, ego_team, team_size) # 似乎都返回[0,0]
@@ -234,26 +236,74 @@ class MyGoBiggerEnvV1(GoBiggerEnv):
         team_obs.append(team_obs_stack(obs[:self._player_num_per_team]))
         return team_obs
 
+    def step(self, action: list) -> BaseEnvTimestep:
+        action = self._act_transform(action)
+        done = self._env.step(action)
+        raw_obs = self._env.obs()
+        obs = self._obs_transform(raw_obs)
+        rew = self._get_reward(raw_obs)
+        info = [{} for _ in range(self._team_num)]
+
+        for i, team_reward in enumerate(rew):
+            self._final_eval_reward[i] += np.array([sum(team_reward)]) #modify
+        if done:
+            for i in range(self._team_num):
+                info[i]['final_eval_reward'] = self._final_eval_reward[i]
+                info[i]['leaderboard'] = self._last_team_size
+            leaderboard = self._last_team_size
+            leaderboard_sorted = sorted(leaderboard.items(), key=lambda x: x[1], reverse=True)
+            win_rate = self.win_rate(leaderboard_sorted)
+            print('win_rate:{:.3f}, leaderboard_sorted:{}'.format(win_rate, leaderboard_sorted))
+            logging.info('win_rate:{:.3f}, leaderboard_sorted:{}'.format(win_rate, leaderboard_sorted))
+        return BaseEnvTimestep(obs, rew, done, info)
+
+
     def _get_reward(self, obs: tuple) -> list:
-        global_state, _ = obs
-        if self._last_team_size is None:
-            team_reward = [np.array([0.]) for __ in range(self._team_num)]
+        global_state, player_state = obs
+        cur_player_size = defaultdict(int)
+        cur_player_cl_num = defaultdict(int)
+        for n in self._player_names:
+            _clone = player_state[str(n)]['overlap']['clone']
+            for cl in _clone:
+                if cl[-2] == int(n):
+                    cur_player_size[str(n)] = cur_player_size[str(n)] + (cl[2] * cl[2])
+                    cur_player_cl_num[str(n)] = cur_player_cl_num[str(n)]+1
+        if self._last_player_size is None:
+            team_reward = [np.array([0. for _ in range(self._player_num_per_team)]) for __ in range(self._team_num)]
         else:
-            reward = []
+            reward_single = defaultdict(int)
+            reward_team = defaultdict(int)
+            reward_cl_num = defaultdict(int)
+            reward_weight = [0.6, 0.2, 0.2]
+            reward = defaultdict(int)
             for n in self._player_names:
+                last_size = self._last_player_size[str(n)]
+                cur_size = cur_player_size[str(n)]
+                symbol = 1.0 if cur_size >= last_size else -1.0
+                reward_single[str(n)] = np.clip(symbol*(math.sqrt(abs(cur_size-last_size)/last_size)), -1, 1)
+
                 team_name = str(int(n) // self._player_num_per_team)
                 last_size = self._last_team_size[team_name]
                 cur_size = global_state['leaderboard'][team_name]
-                reward.append(np.array([cur_size - last_size]))
+                symbol = 1.0 if cur_size >= last_size else -1.0
+                reward_team[str(n)] = np.clip(symbol*(math.sqrt(abs(cur_size-last_size)/last_size)), -1, 1)
+
+                last_player_cl_num = self._last_player_cl_num[str(n)]
+                reward_cl_num[str(n)] = np.clip((last_player_cl_num-cur_player_cl_num[str(n)])/2, -1, 1)
+
+                reward[str(n)] = reward_single[str(n)]*reward_weight[0]+reward_team[str(n)]*reward_weight[1]+\
+                                 reward_cl_num[str(n)]*reward_weight[2]
+
             team_reward = []
             for i in range(self._team_num):
-                team_reward_item = sum(reward[i * self._player_num_per_team:(i + 1) * self._player_num_per_team])
-                if self._train:
-                    # symbol = -1 if team_reward_item < 0 else 1
-                    # team_reward_item = np.ndarray(symbol*tanh(math.sqrt(abs(team_reward_item))/20))
-                    team_reward_item = np.clip(team_reward_item / 24, -1, 1)
-                team_reward.append(team_reward_item)
+                player_reward = []
+                for j in range(i * self._player_num_per_team,(i + 1) * self._player_num_per_team):
+                    player_reward.append(reward[str(j)])
+                player_reward = np.array(player_reward)
+                team_reward.append(player_reward)
+        self._last_player_size = cur_player_size
         self._last_team_size = global_state['leaderboard']
+        self._last_player_cl_num = cur_player_cl_num
         return team_reward
 
 def food_encode(clones, foods, left_top_x, left_top_y, right_bottom_x, right_bottom_y, team_id, player_id):

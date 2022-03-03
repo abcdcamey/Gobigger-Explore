@@ -21,6 +21,7 @@ gobigger_config = dict(
         manager=dict(shared_memory=False, ),
     ),
     policy=dict(
+        type='rainbow',
         cuda=True,
         on_policy=False,
         priority=False, #defalut False
@@ -38,14 +39,19 @@ gobigger_config = dict(
             hidden_shape=128,
             encode_shape=32,
             action_type_shape=16,
+            v_min=-10,
+            v_max=10,
+            n_atom=51,
         ),
         learn=dict(
+            multi_gpu=False,
             update_per_collect=8,
             batch_size=56,
             learning_rate=0.001,
             target_theta=0.005,
             discount_factor=0.9,
             ignore_done=False,
+            target_update_freq=100,
             learner=dict(
                 hook=dict(save_ckpt_after_iter=1000, load_ckpt_before_run='gobigger_simple_baseline_dqn/ckpt/',)),
         ),
@@ -58,7 +64,12 @@ gobigger_config = dict(
                 end=0.5,
                 decay=100000,
             ),
-            replay_buffer=dict(replay_buffer_size=100000, ),
+            replay_buffer=dict(
+                replay_buffer_size=100000,
+                alpha=0.6,
+                beta=0.4,
+                anneal_step=100000,
+            ),
         ),
     ),
 )

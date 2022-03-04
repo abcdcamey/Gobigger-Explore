@@ -620,7 +620,7 @@ class MyDQNPolicy(Policy):
         if self._cuda:
             output = to_device(output, 'cpu')
         output = default_decollate(output)
-        logging.info(f"output:{output}")
+        #logging.info(f"output:{output}")
         return {i: d for i, d in zip(data_id, output)}
 
     def default_model(self) -> Tuple[str, List[str]]:

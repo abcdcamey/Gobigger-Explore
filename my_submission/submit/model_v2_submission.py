@@ -12,6 +12,7 @@ from .policy.my_gobigger_policy_v2 import MyDQNPolicy
 from .envs import MyGoBiggerEnvV2
 from .model import MyGoBiggerHybridActionV1
 from .config.gobigger_no_spatial_config_my_v1 import main_config
+from collections import OrderedDict
 
 
 class BaseSubmission:
@@ -46,7 +47,7 @@ class MySubmission(BaseSubmission):
         self.root_path = os.path.abspath(os.path.dirname(__file__))
         self.model = MyGoBiggerHybridActionV1(**self.cfg.policy.model)
         self.policy = MyDQNPolicy(self.cfg.policy, model=self.model)
-        self.policy.eval_mode.load_state_dict(torch.load(os.path.join(self.root_path, 'supplements', 'v2_iteration_37000.pth.tar'), map_location='cpu'))
+        self.policy.eval_mode.load_state_dict(torch.load(os.path.join(self.root_path, 'supplements', 'v2_iteration_40000.pth.tar'), map_location='cpu'))
         self.policy = self.policy.eval_mode
         self.env = MyGoBiggerEnvV2(self.cfg.env)
 
@@ -55,5 +56,7 @@ class MySubmission(BaseSubmission):
         obs_transform = {0: obs_transform}
         raw_actions = self.policy.forward(obs_transform)[0]['action']
         raw_actions = raw_actions.tolist()
-        actions = {n: MyGoBiggerEnvV2._to_raw_action(a) for n, a in zip(obs[1].keys(), raw_actions)}
+        player_state = obs[1]
+        player_state = OrderedDict(player_state)
+        actions = {n: MyGoBiggerEnvV2._to_raw_action(a) for n, a in zip(player_state.keys(), raw_actions)}
         return actions

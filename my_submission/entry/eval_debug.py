@@ -117,8 +117,8 @@ def main(cfg, ckpt_path, seed=0):
     # Evaluator Setting
     cfg.exp_name = 'gobigger_vsbot_eval'
     cfg.env.spatial = False  # necessary
-    cfg.env.evaluator_env_num = 2
-    cfg.env.n_evaluator_episode = 8
+    cfg.env.evaluator_env_num = 1
+    cfg.env.n_evaluator_episode = 1
 
     cfg = compile_config(
         cfg,
@@ -139,13 +139,13 @@ def main(cfg, ckpt_path, seed=0):
 
         rule_env_cfg.train = False
         # if i==0:
-        rule_env_cfg.save_video = False
+        rule_env_cfg.save_video = True
         # else:
         # rule_env_cfg.save_video = False
 
         rule_env_cfg.save_quality = 'low'
         rule_env_cfg.save_path = './{}/rule'.format(cfg.exp_name)
-        rule_env_cfg.match_time = 60 * 10
+        rule_env_cfg.match_time = 60 * 5
         if not os.path.exists(rule_env_cfg.save_path):
             os.makedirs(rule_env_cfg.save_path)
         rule_env_cfgs.append(rule_env_cfg)
@@ -170,7 +170,7 @@ def main(cfg, ckpt_path, seed=0):
     team_num = cfg.env.team_num
     #rule_eval_policy1 = [RulePolicy(team_id, cfg.env.player_num_per_team) for team_id in range(1, 4)]
 
-    #rule_eval_policy2 = [MyRulePolicyV2(team_id, cfg.env.player_num_per_team) for team_id in range(2, 3)]
+    rule_eval_policy2 = [MyRulePolicyV2(team_id, cfg.env.player_num_per_team) for team_id in range(0, 1)]
 
     rule_eval_policy3 = [MyRulePolicyV3(team_id, cfg.env.player_num_per_team) for team_id in range(1, 4)]
 
@@ -179,7 +179,7 @@ def main(cfg, ckpt_path, seed=0):
 
     rule_evaluator = BattleInteractionSerialEvaluator(
         cfg.policy.eval.evaluator,
-        rule_evaluator_env, [policy.eval_mode] + rule_eval_policy3 ,
+        rule_evaluator_env, rule_eval_policy2 + rule_eval_policy3 ,
         tb_logger,
         exp_name=cfg.exp_name,
         instance_name='rule_evaluator'

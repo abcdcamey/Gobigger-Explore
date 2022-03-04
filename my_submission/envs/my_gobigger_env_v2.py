@@ -16,6 +16,7 @@ from ding.utils import ENV_REGISTRY
 from .gobigger_env import GoBiggerEnv
 from collections import defaultdict
 import logging
+from typing import Any, List, Union, Optional, Tuple
 
 
 def unit_id(unit_player, unit_team, ego_player, ego_team, team_size):
@@ -158,7 +159,7 @@ class MyGoBiggerEnvV2(GoBiggerEnv):
     def _obs_transform_eval(self, obs: tuple) -> list:
         global_state, player_state = obs
         player_state = OrderedDict(player_state)
-
+        logging.info(global_state)
         # global
         total_time = global_state['total_time']
         last_time = global_state['last_time']
@@ -306,6 +307,42 @@ class MyGoBiggerEnvV2(GoBiggerEnv):
         self._last_player_cl_num = cur_player_cl_num
         return team_reward
 
+    @staticmethod
+    def _to_raw_action(act: int) -> Tuple[float, float, int]:
+        assert 0 <= act < 20
+        # -1, 0, 1, 2(noop, eject, split, gather)
+        # 0, 1, 2, 3, 4(up, down, left, right, None)
+        direction, action_type = act // 4, act % 4
+        action_type = action_type - 1
+        if direction == 0:
+            x, y = 0, 1
+        elif direction == 1:
+            x, y = 0, -1
+        elif direction == 2:
+            x, y = -1, 0
+        elif direction == 3:
+            x, y = 1, 0
+        else:
+            x, y = None, None
+        return [x, y, action_type]
+
+    @staticmethod
+    def raw_action_to_int(action_ret: Tuple[float, float, int]) -> int:
+        x, y = action_ret[:2]
+        if action_ret[0] is None or action_ret[1] is None:
+            direction = 4
+        elif x==0 and y==1:
+            direction = 0
+        elif x==0 and y==-1:
+            direction = 1
+        elif x==-1 and y==0:
+            direction = 2
+        elif x==1 and y==0:
+            direction = 2
+
+        action_type = (action_ret[2]+1)
+
+        return int(direction*4+action_type)
 def food_encode(clones, foods, left_top_x, left_top_y, right_bottom_x, right_bottom_y, team_id, player_id):
     # food_map's shape: 2,h,w   2,300/16,300/16
     # food_map[0,:,:] represent food density map

@@ -3,7 +3,7 @@ from easydict import EasyDict
 gobigger_config = dict(
     exp_name='gobigger_my_v1',
     env=dict(
-        collector_env_num=2,
+        collector_env_num=4,
         evaluator_env_num=1,
         n_evaluator_episode=1,
         stop_value=1e10,
@@ -37,11 +37,11 @@ gobigger_config = dict(
             clone_with_enemy_relation_shape=12,
             hidden_shape=128,
             encode_shape=32,
-            action_type_shape=16,
+            action_type_shape=20,
         ),
         learn=dict(
             update_per_collect=8,
-            batch_size=56,
+            batch_size=128,
             learning_rate=0.001,
             target_theta=0.005,
             discount_factor=0.9,
@@ -49,7 +49,7 @@ gobigger_config = dict(
             learner=dict(
                 hook=dict(save_ckpt_after_iter=1000, load_ckpt_before_run='gobigger_simple_baseline_dqn/ckpt/',)),
         ),
-        collect=dict(n_sample=128, unroll_len=1, alpha=1.0),
+        collect=dict(n_sample=192, unroll_len=1, alpha=1.0),
         eval=dict(evaluator=dict(eval_freq=2000,)),
         other=dict(
             eps=dict(

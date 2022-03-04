@@ -334,7 +334,7 @@ class MyDQNPolicy(Policy):
         # Optimizer
         self._optimizer = Adam(self._model.parameters(), lr=self._cfg.learn.learning_rate)
 
-        self._lr_scheduler = MultiStepLR(self._optimizer, milestones=[20000, 32000, 42000, 50000, 60000], gamma=np.float64(0.6))
+        self._lr_scheduler = MultiStepLR(self._optimizer, milestones=[40000, 50000, 70000, 80000], gamma=np.float64(0.6))
         #self._lr_scheduler = MultiStepLR(self._optimizer, milestones=[10, 15, 25000, 30000, 33000], gamma=np.float64(0.6))
 
         self._gamma = self._cfg.discount_factor
@@ -620,7 +620,7 @@ class MyDQNPolicy(Policy):
         if self._cuda:
             output = to_device(output, 'cpu')
         output = default_decollate(output)
-        #logging.info(f"output:{output}")
+        logging.info(f"output:{output}")
         return {i: d for i, d in zip(data_id, output)}
 
     def default_model(self) -> Tuple[str, List[str]]:

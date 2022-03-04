@@ -18,6 +18,8 @@ from pygame.math import Vector2
 
 from gobigger.agents.base_agent import BaseAgent
 import sys, os
+
+
 curr_path = os.path.dirname(__file__)
 parent_path = os.path.dirname(curr_path)
 sys.path.append(parent_path)
@@ -154,6 +156,31 @@ def adjust_direction(global_state, my_clone_balls, action_ret):
                 action_ret[0] = 0.99
                 action_ret[1] = 0.0001
     return action_ret
+
+
+def convert2udlr(action_ret): #把方向向量转换为上下左右
+
+    x, y = action_ret[:2]
+    if x is None or y is None:
+        return action_ret
+
+    if abs(x) > abs(y):
+        if x < 0:
+            action_ret[0] = -1
+            action_ret[1] = 0
+        else:
+            action_ret[0] = 1
+            action_ret[1] = 0
+    else:
+        if y < 0:
+            action_ret[0] = 0
+            action_ret[1] = -1
+        else:
+            action_ret[0] = 0
+            action_ret[1] = 1
+
+    return action_ret
+
 class MyBotAgent(BaseAgent):
     '''
     Overview:
@@ -170,6 +197,9 @@ class MyBotAgent(BaseAgent):
         self.last_total_size = 0
         self.level = level
 
+
+
+
     def step(self, obs):
         global_state, player_state = obs
 
@@ -181,7 +211,9 @@ class MyBotAgent(BaseAgent):
             #logging.info(f"player_name:{self.player_name},time:{global_state.get('last_time')},leaderboard:{global_state.get('leaderboard')}")
             #logging.info(f"overlap:{player_state.get(self.player_name).get('overlap')}")
             action_ret = self.step_level_3(global_state, player_state.get(self.player_name))
-            #logging.info(f"action_ret:{action_ret}")
+            #logging.info(f"action_ret before conv:{action_ret}")
+            action_ret = convert2udlr(action_ret)
+            #logging.info(f"action_ret after conv:{action_ret}")
             return action_ret
 
     def step_level_1(self, obs):

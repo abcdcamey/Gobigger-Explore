@@ -79,6 +79,8 @@ class GoBiggerEnv(BaseEnv):
         raw_obs = self._env.obs()
         obs = self._obs_transform(raw_obs)
         self._last_team_size = None
+        self._last_player_size = None
+        self._last_player_cl_num = None
         rew = self._get_reward(raw_obs)
         return obs
 

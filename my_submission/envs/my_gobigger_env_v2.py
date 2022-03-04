@@ -290,7 +290,10 @@ class MyGoBiggerEnvV2(GoBiggerEnv):
                 reward_team[str(n)] = np.clip(symbol*(math.sqrt(abs(cur_size-last_size)/last_size)), -1, 1)
 
                 last_player_cl_num = self._last_player_cl_num[str(n)]
+
                 reward_cl_num[str(n)] = np.clip((last_player_cl_num-cur_player_cl_num[str(n)])/2, -1, 1)
+                if reward_cl_num[str(n)] > 0 and reward_single[str(n)]<-0.05:
+                    reward_cl_num[str(n)] = np.clip(0 ,-1, 1)
 
                 reward[str(n)] = reward_single[str(n)]*reward_weight[0]+reward_team[str(n)]*reward_weight[1]+\
                                  reward_cl_num[str(n)]*reward_weight[2]

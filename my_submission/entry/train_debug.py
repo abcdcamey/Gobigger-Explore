@@ -213,7 +213,9 @@ def main(cfg,ckpt_path=None, seed=0, max_iterations=int(1e10)):
     evaluator_env_cfg.save_video = True
     evaluator_env_cfg.save_quality = 'low'
     evaluator_env_cfg.save_path = './{}/rule'.format(cfg.exp_name)
-
+    evaluator_env_cfg.match_time = 6
+    if not os.path.exists(evaluator_env_cfg.save_path):
+        os.makedirs(evaluator_env_cfg.save_path)
     collector_env = SyncSubprocessEnvManager(
         env_fn=[lambda: MyGoBiggerEnvV2(collector_env_cfg) for _ in range(collector_env_num)], cfg=cfg.env.manager
     )

@@ -341,7 +341,7 @@ class MyGoBiggerEnvV2(GoBiggerEnv):
         elif x==-1 and y==0:
             direction = 2
         elif x==1 and y==0:
-            direction = 2
+            direction = 3
 
         action_type = (action_ret[2]+1)
 

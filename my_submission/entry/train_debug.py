@@ -88,7 +88,9 @@ class MyRulePolicyV2:
                 obs = (global_state, player_state)
                 #raw_obs['overlap']['clone'] = [[x[0], x[1], x[2], int(x[3]), int(x[4])]  for x in raw_obs['overlap']['clone']]
                 action_ret = bot.step(obs)
+                #print(action_ret)
                 act = MyGoBiggerEnvV2.raw_action_to_int(action_ret)
+                #print(act)
                 action.append(act)
 
             ret[env_id] = {'action': np.array(action)}
@@ -265,7 +267,7 @@ def main(cfg,ckpt_path=None, seed=0, max_iterations=int(1e10)):
     replay_buffer = NaiveReplayBuffer(cfg.policy.other.replay_buffer, exp_name=cfg.exp_name)
 
     for k in range(max_iterations):
-        if learner.train_iter>=20 and rule_evaluator.should_eval(learner.train_iter):
+        if learner.train_iter>=0 and learner.train_iter<=2000 and rule_evaluator.should_eval(learner.train_iter):
             rule_stop_flag, rule_reward, _ = rule_evaluator.eval(
                 learner.save_checkpoint, learner.train_iter, collector.envstep
             )

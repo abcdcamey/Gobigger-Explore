@@ -3,9 +3,9 @@ from easydict import EasyDict
 gobigger_config = dict(
     exp_name='gobigger_my_v1',
     env=dict(
-        collector_env_num=4,
-        evaluator_env_num=1,
-        n_evaluator_episode=1,
+        collector_env_num=8,
+        evaluator_env_num=2,
+        n_evaluator_episode=2,
         stop_value=1e10,
         team_num=4,
         player_num_per_team=3,
@@ -47,7 +47,7 @@ gobigger_config = dict(
             discount_factor=0.9,
             ignore_done=False,
             learner=dict(
-                hook=dict(save_ckpt_after_iter=10000, load_ckpt_before_run='gobigger_simple_baseline_dqn/ckpt/',)),
+                hook=dict(save_ckpt_after_iter=2000, load_ckpt_before_run='gobigger_simple_baseline_dqn/ckpt/',)),
         ),
         collect=dict(n_sample=192, unroll_len=1, alpha=1.0),
         eval=dict(evaluator=dict(eval_freq=2000,)),
@@ -56,9 +56,9 @@ gobigger_config = dict(
                 type='exp',
                 start=0.95,
                 end=0.5,
-                decay=100000,
+                decay=90000,
             ),
-            replay_buffer=dict(replay_buffer_size=100000, ),
+            replay_buffer=dict(replay_buffer_size=90000, ),
         ),
     ),
 )

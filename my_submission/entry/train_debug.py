@@ -198,7 +198,7 @@ def main(cfg,ckpt_path=None, seed=0, max_iterations=int(1e10)):
     #print(ckpt_path)
     cfg = compile_config(
         cfg,
-        SyncSubprocessEnvManager,
+        BaseEnvManager,
         MyDQNPolicy,
         BaseLearner,
         BattleSampleSerialCollector,
@@ -218,10 +218,10 @@ def main(cfg,ckpt_path=None, seed=0, max_iterations=int(1e10)):
     # evaluator_env_cfg.match_time = 60*10
     # if not os.path.exists(evaluator_env_cfg.save_path):
     #     os.makedirs(evaluator_env_cfg.save_path)
-    collector_env = SyncSubprocessEnvManager(
+    collector_env = BaseEnvManager(
         env_fn=[lambda: MyGoBiggerEnvV2(collector_env_cfg) for _ in range(collector_env_num)], cfg=cfg.env.manager
     )
-    rule_evaluator_env = SyncSubprocessEnvManager(
+    rule_evaluator_env = BaseEnvManager(
         env_fn=[lambda: MyGoBiggerEnvV2(evaluator_env_cfg) for _ in range(evaluator_env_num)], cfg=cfg.env.manager
     )
 
@@ -267,7 +267,7 @@ def main(cfg,ckpt_path=None, seed=0, max_iterations=int(1e10)):
     replay_buffer = NaiveReplayBuffer(cfg.policy.other.replay_buffer, exp_name=cfg.exp_name)
 
     for k in range(max_iterations):
-        if (learner.train_iter<=2000 or learner.train_iter>=20000) and rule_evaluator.should_eval(learner.train_iter):
+        if (learner.train_iter<=-1 or learner.train_iter>=20000) and rule_evaluator.should_eval(learner.train_iter):
             rule_stop_flag, rule_reward, _ = rule_evaluator.eval(
                 learner.save_checkpoint, learner.train_iter, collector.envstep
             )

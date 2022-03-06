@@ -272,11 +272,11 @@ class MyGoBiggerEnvV2(GoBiggerEnv):
         if self._last_player_size is None:
             team_reward = [np.array([0. for _ in range(self._player_num_per_team)]) for __ in range(self._team_num)]
         else:
-            reward_single = defaultdict(int)
-            reward_team = defaultdict(int)
-            reward_cl_num = defaultdict(int)
+            reward_single = defaultdict(float)
+            reward_team = defaultdict(float)
+            reward_cl_num = defaultdict(float)
             reward_weight = [0.6, 0.2, 0.2]
-            reward = defaultdict(int)
+            reward = defaultdict(float)
             for n in self._player_names:
                 last_size = self._last_player_size[str(n)]
                 cur_size = cur_player_size[str(n)]
@@ -295,8 +295,8 @@ class MyGoBiggerEnvV2(GoBiggerEnv):
                 if reward_cl_num[str(n)] > 0 and reward_single[str(n)]<-0.05:
                     reward_cl_num[str(n)] = np.clip(0 ,-1, 1)
 
-                reward[str(n)] = reward_single[str(n)]*reward_weight[0]+reward_team[str(n)]*reward_weight[1]+\
-                                 reward_cl_num[str(n)]*reward_weight[2]
+                reward[str(n)] = reward_single[str(n)]*reward_weight[0]+\
+                                 reward_team[str(n)]*reward_weight[1]+reward_cl_num[str(n)]*reward_weight[2]
 
             team_reward = []
             for i in range(self._team_num):

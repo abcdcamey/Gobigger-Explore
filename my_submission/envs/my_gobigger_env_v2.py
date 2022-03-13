@@ -69,7 +69,7 @@ class MyGoBiggerEnvV2(GoBiggerEnv):
                 with_speed=self._speed,
                 with_all_vision=self._all_vision)
         self._last_player_size = None
-
+        self._step_count = 0
     def _unit_id(self, unit_player, unit_team, ego_player, ego_team, team_size):
         return unit_id(unit_player, unit_team, ego_player, ego_team, team_size) # 似乎都返回[0,0]
 
@@ -247,6 +247,12 @@ class MyGoBiggerEnvV2(GoBiggerEnv):
 
         for i, team_reward in enumerate(rew):
             self._final_eval_reward[i] += np.array([sum(team_reward)]) #modify
+        if self._step_count%100==0:
+            leaderboard = self._last_team_size
+            leaderboard_sorted = sorted(leaderboard.items(), key=lambda x: x[1], reverse=True)
+            logging.info('time:{},leaderboard_sorted:{}'.format(self._step_count//5,leaderboard_sorted))
+        self._step_count = self._step_count+1
+
         if done:
             for i in range(self._team_num):
                 info[i]['final_eval_reward'] = self._final_eval_reward[i]
@@ -263,18 +269,28 @@ class MyGoBiggerEnvV2(GoBiggerEnv):
         global_state, player_state = obs
         cur_player_size = defaultdict(int)
         cur_player_cl_num = defaultdict(int)
+        cur_player_cl_avg_dis = defaultdict(float)
+
         for n in self._player_names:
             _clone = player_state[str(n)]['overlap']['clone']
-            for cl in _clone:
-                if cl[-2] == int(n):
-                    cur_player_size[str(n)] = cur_player_size[str(n)] + (cl[2] * cl[2])
-                    cur_player_cl_num[str(n)] = cur_player_cl_num[str(n)]+1
+            _clone = [_cl for _cl in _clone if _cl[-2]==int(n)]
+            dis = 0.0
+            for i in range(len(_clone)):
+                cl = _clone[i]
+                cur_player_size[str(n)] = cur_player_size[str(n)] + (cl[2] * cl[2])
+                cur_player_cl_num[str(n)] = cur_player_cl_num[str(n)]+1
+                # for j in range(i+1,len(_clone)):
+                #     dis = dis+
+
+
+
         if self._last_player_size is None:
             team_reward = [np.array([0. for _ in range(self._player_num_per_team)]) for __ in range(self._team_num)]
         else:
             reward_single = defaultdict(float)
             reward_team = defaultdict(float)
             reward_cl_num = defaultdict(float)
+            reward_cl_avg_dis = defaultdict(float)
             reward_weight = [0.6, 0.2, 0.2]
             reward = defaultdict(float)
             for n in self._player_names:
@@ -308,6 +324,7 @@ class MyGoBiggerEnvV2(GoBiggerEnv):
         self._last_player_size = cur_player_size
         self._last_team_size = global_state['leaderboard']
         self._last_player_cl_num = cur_player_cl_num
+        #self._last_player_cl_avg_dis =
         return team_reward
 
     @staticmethod

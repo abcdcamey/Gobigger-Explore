@@ -139,7 +139,7 @@ total_config.py
 *.mp4
 *.zip
 *.yaml
-
+*.pkl
 
 # idea
 .idea/*

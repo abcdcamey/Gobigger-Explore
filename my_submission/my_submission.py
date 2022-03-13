@@ -1,5 +1,5 @@
 #from policy.bot_policy import MyBotAgent
-from .policy.demo_bot_policy_v2 import MyBotAgent
+from .policy.demo_bot_policy_v2_3 import MyBotAgent
 
 class BaseSubmission:
 

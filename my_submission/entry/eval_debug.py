@@ -26,20 +26,22 @@ from config.gobigger_no_spatial_config_my_v1 import main_config
 import torch
 import argparse
 from policy.demo_bot_policy_v1 import MyBotAgent as MyBotAgentV1
-from policy.demo_bot_policy_v2 import MyBotAgent as MyBotAgentV2
+from policy.demo_bot_policy_v2_3 import MyBotAgent as MyBotAgentV21
 from policy.demo_bot_policy_v3 import MyBotAgent as MyBotAgentV3
+from policy.demo_bot_policy_v4 import MyBotAgent as MyBotAgentV4
+
 
 import logging
 
 
-class MyRulePolicyV2:
+class MyRulePolicyV21:
 
     def __init__(self, team_id: int, player_num_per_team: int):
         self.collect_data = False  # necessary
         self.team_id = team_id
         self.player_num = player_num_per_team
         start, end = team_id * player_num_per_team, (team_id + 1) * player_num_per_team
-        self.bot = [MyBotAgentV2(str(team_id), str(i)) for i in range(start, end)]
+        self.bot = [MyBotAgentV21(str(team_id), str(i)) for i in range(start, end)]
 
     def forward(self, data: dict, **kwargs) -> dict:
         ret = {}
@@ -88,6 +90,33 @@ class MyRulePolicyV3:
     def reset(self, data_id: list = []) -> None:
         pass
 
+class MyRulePolicyV4:
+
+    def __init__(self, team_id: int, player_num_per_team: int):
+        self.collect_data = False  # necessary
+        self.team_id = team_id
+        self.player_num = player_num_per_team
+        start, end = team_id * player_num_per_team, (team_id + 1) * player_num_per_team
+        self.bot = [MyBotAgentV4(str(team_id), str(i)) for i in range(start, end)]
+
+    def forward(self, data: dict, **kwargs) -> dict:
+        ret = {}
+        for env_id in data.keys():
+            action = []
+            for bot, raw_obs in zip(self.bot, data[env_id]['collate_ignore_raw_obs']):
+                global_state = raw_obs["global_state"]
+
+                player_state = {bot.player_name: {"rectangle": raw_obs["rectangle"], "overlap": raw_obs["overlap"],"team_name":raw_obs["team_name"]}}
+                obs = (global_state, player_state)
+                #raw_obs['overlap']['clone'] = [[x[0], x[1], x[2], int(x[3]), int(x[4])]  for x in raw_obs['overlap']['clone']]
+                action.append(bot.step(obs))
+            #print(env_id, self.team_id, action)
+            ret[env_id] = {'action': np.array(action)}
+
+        return ret
+
+    def reset(self, data_id: list = []) -> None:
+        pass
 
 class RulePolicy:
 
@@ -118,7 +147,7 @@ def main(cfg, ckpt_path, seed=0):
     cfg.exp_name = 'gobigger_vsbot_eval'
     cfg.env.spatial = False  # necessary
     cfg.env.evaluator_env_num = 1
-    cfg.env.n_evaluator_episode = 1
+    cfg.env.n_evaluator_episode = 2
 
     cfg = compile_config(
         cfg,
@@ -144,8 +173,8 @@ def main(cfg, ckpt_path, seed=0):
         # rule_env_cfg.save_video = False
 
         rule_env_cfg.save_quality = 'low'
-        rule_env_cfg.save_path = './{}/rule'.format(cfg.exp_name)
-        rule_env_cfg.match_time = 60 * 5
+        rule_env_cfg.save_path = '../../eval_video/{}/rule'.format(cfg.exp_name)
+        rule_env_cfg.match_time = 60 * 10
         if not os.path.exists(rule_env_cfg.save_path):
             os.makedirs(rule_env_cfg.save_path)
         rule_env_cfgs.append(rule_env_cfg)
@@ -170,16 +199,16 @@ def main(cfg, ckpt_path, seed=0):
     team_num = cfg.env.team_num
     #rule_eval_policy1 = [RulePolicy(team_id, cfg.env.player_num_per_team) for team_id in range(1, 4)]
 
-    rule_eval_policy2 = [MyRulePolicyV2(team_id, cfg.env.player_num_per_team) for team_id in range(0, 1)]
+    rule_eval_policy2 = [MyRulePolicyV21(team_id, cfg.env.player_num_per_team) for team_id in range(0, 2)]
 
-    rule_eval_policy3 = [MyRulePolicyV3(team_id, cfg.env.player_num_per_team) for team_id in range(1, 4)]
-
+    #rule_eval_policy3 = [MyRulePolicyV3(team_id, cfg.env.player_num_per_team) for team_id in range(1, 4)]
+    rule_eval_policy4 = [MyRulePolicyV4(team_id, cfg.env.player_num_per_team) for team_id in range(2, 4)]
 
     tb_logger = SummaryWriter(os.path.join('./{}/log/'.format(cfg.exp_name), 'serial'))
 
     rule_evaluator = BattleInteractionSerialEvaluator(
         cfg.policy.eval.evaluator,
-        rule_evaluator_env, rule_eval_policy2 + rule_eval_policy3 ,
+        rule_evaluator_env, rule_eval_policy2+rule_eval_policy4,
         tb_logger,
         exp_name=cfg.exp_name,
         instance_name='rule_evaluator'
@@ -192,5 +221,5 @@ if __name__ == "__main__":
     parser.add_argument('--ckpt', '-c', help='checkpoint for evaluation')
     args = parser.parse_args()
     seed = random.randint(0, 999999)
-    #seed = 1
+    #seed = 166202
     main(main_config, ckpt_path=args.ckpt, seed=seed)

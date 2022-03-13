@@ -70,7 +70,7 @@ class MyRulePolicyV1:
 class MyRulePolicyV2:
 
     def __init__(self, team_id: int, player_num_per_team: int):
-        self.collect_data = True  # necessary
+        self.collect_data = False  # necessary
         self.team_id = team_id
         self.player_num = player_num_per_team
         start, end = team_id * player_num_per_team, (team_id + 1) * player_num_per_team
@@ -198,7 +198,7 @@ def main(cfg,ckpt_path=None, seed=0, max_iterations=int(1e10)):
     #print(ckpt_path)
     cfg = compile_config(
         cfg,
-        SyncSubprocessEnvManager,
+        BaseEnvManager,
         MyDQNPolicy,
         BaseLearner,
         BattleSampleSerialCollector,
@@ -218,10 +218,10 @@ def main(cfg,ckpt_path=None, seed=0, max_iterations=int(1e10)):
     # evaluator_env_cfg.match_time = 60*10
     # if not os.path.exists(evaluator_env_cfg.save_path):
     #     os.makedirs(evaluator_env_cfg.save_path)
-    collector_env = SyncSubprocessEnvManager(
+    collector_env = BaseEnvManager(
         env_fn=[lambda: MyGoBiggerEnvV2(collector_env_cfg) for _ in range(collector_env_num)], cfg=cfg.env.manager
     )
-    rule_evaluator_env = SyncSubprocessEnvManager(
+    rule_evaluator_env = BaseEnvManager(
         env_fn=[lambda: MyGoBiggerEnvV2(evaluator_env_cfg) for _ in range(evaluator_env_num)], cfg=cfg.env.manager
     )
 
@@ -235,6 +235,8 @@ def main(cfg,ckpt_path=None, seed=0, max_iterations=int(1e10)):
     if ckpt_path is not None:
         f = torch.load(ckpt_path)
         policy.collect_mode.load_state_dict(f)
+        policy.learn_mode.load_state_dict(f)
+        policy.eval_mode.load_state_dict(f)
         logging.debug(f'load model from {ckpt_path}')
 
 

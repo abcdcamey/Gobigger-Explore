@@ -22,7 +22,7 @@ logging.basicConfig(level=logging.DEBUG)
 
 
 def test():
-    save_path = './video'
+    save_path = './test_video'
     if not os.path.exists(save_path):
         os.makedirs(save_path)
     match_time = 6*5

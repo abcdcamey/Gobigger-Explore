@@ -151,4 +151,5 @@ total_config.py
 *.tar.gz
 *.gz
 supplements/
-
+*.replay
+*.data
